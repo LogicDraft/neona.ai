@@ -58,8 +58,6 @@ export async function parseScheduleText(options: {
       configuredModel,
       "gemini-2.0-flash",
       "gemini-2.0-flash-lite",
-      "gemini-1.5-flash-latest",
-      "gemini-1.5-pro-latest",
       "gemini-1.5-flash",
     ]),
   );
@@ -81,30 +79,31 @@ export async function parseScheduleText(options: {
       const json = JSON.parse(stripCodeFences(response));
       return parsedItemSchema.parse(json);
     } catch (err: any) {
+      console.error(`Model ${modelName} failed with error:`, err);
       lastError = err;
 
-      const listFn = (client as any).listModels ?? (client as any).list_available_models ?? null;
-      if (typeof listFn === "function") {
-        const modelsResp = await listFn.call(client);
-        // modelsResp may have different shapes depending on SDK version
-        const names: string[] = [];
-        if (Array.isArray(modelsResp)) {
-          for (const m of modelsResp) names.push(m.name ?? m.model ?? String(m));
-        } else if (modelsResp && Array.isArray(modelsResp.models)) {
-          for (const m of modelsResp.models) names.push(m.name ?? m.model ?? String(m));
-        } else if (modelsResp && Array.isArray(modelsResp.modelDescriptions)) {
-          for (const m of modelsResp.modelDescriptions) names.push(m.name ?? m.model ?? String(m));
-        }
-
-        const sample = names.slice(0, 8).join(", ");
-        const message = `GoogleGenerativeAI Error: ${err?.message ?? String(err)}.\nAvailable models (sample): ${sample}.\nTried models: ${modelCandidates.join(", ")}.`;
-        if (modelName === modelCandidates[modelCandidates.length - 1]) {
-          throw new Error(`${message}\nSet GEMINI_MODEL to one of these supported model names.`);
-        }
-      }
-
-      // If listing fails, continue trying the remaining candidate models.
+      // If it's the last model, try listing models to provide a helpful error message
       if (modelName === modelCandidates[modelCandidates.length - 1]) {
+        const listFn = (client as any).listModels ?? (client as any).list_available_models ?? null;
+        if (typeof listFn === "function") {
+          try {
+            const modelsResp = await listFn.call(client);
+            const names: string[] = [];
+            if (Array.isArray(modelsResp)) {
+              for (const m of modelsResp) names.push(m.name ?? m.model ?? String(m));
+            } else if (modelsResp && Array.isArray(modelsResp.models)) {
+              for (const m of modelsResp.models) names.push(m.name ?? m.model ?? String(m));
+            } else if (modelsResp && Array.isArray(modelsResp.modelDescriptions)) {
+              for (const m of modelsResp.modelDescriptions) names.push(m.name ?? m.model ?? String(m));
+            }
+
+            const sample = names.slice(0, 8).join(", ");
+            const message = `GoogleGenerativeAI Error: ${err?.message ?? String(err)}.\nAvailable models (sample): ${sample}.\nTried models: ${modelCandidates.join(", ")}.`;
+            throw new Error(`${message}\nSet GEMINI_MODEL to one of these supported model names.`);
+          } catch (listErr) {
+            // Ignore list errors
+          }
+        }
         throw err;
       }
       continue;
