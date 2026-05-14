@@ -51,25 +51,38 @@ export async function parseScheduleText(options: {
     throw new Error("GEMINI_API_KEY is not configured.");
   }
 
-  const modelName = process.env.GEMINI_MODEL ?? "gemini-1.5-flash";
   const client = new GoogleGenerativeAI(apiKey);
-  const model = client.getGenerativeModel({
-    model: modelName,
-    generationConfig: {
-      responseMimeType: "application/json",
-      temperature: 0.2,
-    },
-  });
+  const configuredModel = process.env.GEMINI_MODEL ?? "gemini-2.0-flash";
+  const modelCandidates = Array.from(
+    new Set([
+      configuredModel,
+      "gemini-2.0-flash",
+      "gemini-2.0-flash-lite",
+      "gemini-1.5-flash-latest",
+      "gemini-1.5-pro-latest",
+      "gemini-1.5-flash",
+    ]),
+  );
 
-  try {
-    const result = await model.generateContent(buildPrompt(options.text, options.timezone, options.preferredKind));
-    const response = result.response.text();
-    const json = JSON.parse(stripCodeFences(response));
-    return parsedItemSchema.parse(json);
-  } catch (err: any) {
-    // If the configured model isn't available for the client's API version (common with Gemini model name mismatches),
-    // try to list available models and return a helpful error.
+  let lastError: unknown;
+
+  for (const modelName of modelCandidates) {
+    const model = client.getGenerativeModel({
+      model: modelName,
+      generationConfig: {
+        responseMimeType: "application/json",
+        temperature: 0.2,
+      },
+    });
+
     try {
+      const result = await model.generateContent(buildPrompt(options.text, options.timezone, options.preferredKind));
+      const response = result.response.text();
+      const json = JSON.parse(stripCodeFences(response));
+      return parsedItemSchema.parse(json);
+    } catch (err: any) {
+      lastError = err;
+
       const listFn = (client as any).listModels ?? (client as any).list_available_models ?? null;
       if (typeof listFn === "function") {
         const modelsResp = await listFn.call(client);
@@ -83,13 +96,20 @@ export async function parseScheduleText(options: {
           for (const m of modelsResp.modelDescriptions) names.push(m.name ?? m.model ?? String(m));
         }
 
-        const sample = names.slice(0, 8).join(', ');
-        throw new Error(`GoogleGenerativeAI Error: ${err?.message ?? String(err)}.\nAvailable models (sample): ${sample}.\nSet GEMINI_MODEL to one of these supported model names.`);
+        const sample = names.slice(0, 8).join(", ");
+        const message = `GoogleGenerativeAI Error: ${err?.message ?? String(err)}.\nAvailable models (sample): ${sample}.\nTried models: ${modelCandidates.join(", ")}.`;
+        if (modelName === modelCandidates[modelCandidates.length - 1]) {
+          throw new Error(`${message}\nSet GEMINI_MODEL to one of these supported model names.`);
+        }
       }
-    } catch (listErr) {
-      // ignore listing failure and fallthrough to original error
-    }
 
-    throw err;
+      // If listing fails, continue trying the remaining candidate models.
+      if (modelName === modelCandidates[modelCandidates.length - 1]) {
+        throw err;
+      }
+      continue;
+    }
   }
+
+  throw lastError instanceof Error ? lastError : new Error("Unable to parse schedule with Gemini.");
 }
