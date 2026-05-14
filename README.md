@@ -18,7 +18,7 @@ A Next.js chatbot that uses Gemini to turn natural language into structured cale
 4. Enable the Google Calendar API and Google Tasks API.
 5. Set OAuth redirect URIs to both:
 	- `http://localhost:3000/api/auth/callback/google`
-	- `https://neona-ai.netlify.app/api/auth/callback/google`
+	- `https://neona-ai-two.vercel.app/api/auth/callback/google`
 6. Run `npm run dev`.
 
 ## Environment variables
@@ -30,7 +30,22 @@ A Next.js chatbot that uses Gemini to turn natural language into structured cale
 - `NEXTAUTH_URL`
 - `NEXTAUTH_SECRET`
 
-For Netlify production, set `NEXTAUTH_URL=https://neona-ai.netlify.app` in Site Settings > Environment variables.
+## Vercel Requirements
+
+To deploy on Vercel, set these environment variables in Project Settings > Environment Variables:
+
+- `NEXTAUTH_URL=https://neona-ai-two.vercel.app`
+- `NEXTAUTH_SECRET`
+- `GEMINI_API_KEY`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+
+In Google Cloud Console, add these OAuth redirect URIs:
+
+- `http://localhost:3000/api/auth/callback/google`
+- `https://neona-ai-two.vercel.app/api/auth/callback/google`
+
+Enable the Google Calendar API and Google Tasks API for the same Google Cloud project.
 
 ## Google scopes
 
