@@ -18,12 +18,13 @@ export type GoogleTokenSet = {
 function createOAuthClient() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const redirectUrl = process.env.NEXTAUTH_URL ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined);
 
-  if (!clientId || !clientSecret) {
+  if (!clientId || !clientSecret || !redirectUrl) {
     throw new Error("Google OAuth credentials are not configured.");
   }
 
-  return new google.auth.OAuth2(clientId, clientSecret, process.env.NEXTAUTH_URL);
+  return new google.auth.OAuth2(clientId, clientSecret, redirectUrl);
 }
 
 async function refreshAccessToken(refreshToken: string) {

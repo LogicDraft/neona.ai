@@ -2,6 +2,21 @@ import GoogleProvider from "next-auth/providers/google";
 import type { NextAuthOptions } from "next-auth";
 import type { JWT } from "next-auth/jwt";
 
+const nextAuthUrl = process.env.NEXTAUTH_URL ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined);
+const nextAuthSecret = process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET;
+const googleClientId = process.env.GOOGLE_CLIENT_ID;
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+if (!googleClientId || !googleClientSecret || !nextAuthSecret) {
+  console.error("[auth] Missing required auth environment variables.", {
+    hasGoogleClientId: Boolean(googleClientId),
+    hasGoogleClientSecret: Boolean(googleClientSecret),
+    hasNextAuthSecret: Boolean(nextAuthSecret),
+    hasNextAuthUrl: Boolean(nextAuthUrl),
+    hasVercelUrl: Boolean(process.env.VERCEL_URL),
+  });
+}
+
 async function refreshAccessToken(token: JWT): Promise<JWT> {
   try {
     const response = await fetch("https://oauth2.googleapis.com/token", {
@@ -47,8 +62,8 @@ const googleScopes = [
 export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID ?? "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+      clientId: googleClientId ?? "",
+      clientSecret: googleClientSecret ?? "",
       authorization: {
         params: {
           scope: googleScopes,
@@ -91,5 +106,6 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: nextAuthSecret,
+  debug: process.env.NEXTAUTH_DEBUG === "true",
 };
