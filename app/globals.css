@@ -1149,6 +1149,36 @@ tr:last-child td {
   display: inline-grid;
 }
 
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 50%;
+}
+
+.status-dot[data-connected="true"] {
+  background-color: #22c55e;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.7);
+  animation: statusPulse 2.4s ease-in-out infinite;
+}
+
+.status-dot[data-connected="false"] {
+  background-color: #ef4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
+}
+
+@keyframes statusPulse {
+  0%, 100% {
+    box-shadow: 0 0 6px rgba(34, 197, 94, 0.6);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 14px rgba(34, 197, 94, 0.9);
+    transform: scale(1.15);
+  }
+}
+
 @keyframes splashExit {
   0%,
   72% {

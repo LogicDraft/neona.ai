@@ -648,6 +648,11 @@ export default function SchedulerChat() {
           <button className="footer-row">
             <span className="avatar">N</span>
             <span>Neona Studio</span>
+            <span
+              className="status-dot"
+              data-connected={String(googleConnected)}
+              title={googleConnected ? "Google connected" : "Google not connected"}
+            />
           </button>
         </div>
       </aside>
@@ -657,7 +662,15 @@ export default function SchedulerChat() {
           <IconButton label="Open menu" icon="menu" onClick={() => setDrawerOpen(true)} className="desktop-hidden" />
           <button className="topbar-brand" onClick={() => setScreen("chat")} aria-label="Open chat">
             <LogoMark />
-            <span>Neona</span>
+            <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              Neona
+              <span
+                className="status-dot"
+                data-connected={String(googleConnected)}
+                title={googleConnected ? "Google connected" : "Google not connected"}
+                aria-label={googleConnected ? "Google connected" : "Google not connected"}
+              />
+            </span>
           </button>
           <div className="topbar-actions">
             <IconButton label="New chat" icon="plus" onClick={newChat} />
@@ -718,7 +731,12 @@ export default function SchedulerChat() {
               </div>
               <button className="settings-row" onClick={() => signIn("google", { callbackUrl: "/auth/connected" })} disabled={googleConnected}>
                 <Icon name="user" />
-                <span>{googleConnected ? "Google connected" : "Connect Google"}</span>
+                <span style={{ flex: 1 }}>{googleConnected ? "Google connected" : "Connect Google"}</span>
+                <span
+                  className="status-dot"
+                  data-connected={String(googleConnected)}
+                  title={googleConnected ? "Google connected" : "Not connected"}
+                />
               </button>
               <button className="settings-row">
                 <Icon name="download" />
