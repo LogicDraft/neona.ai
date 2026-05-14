@@ -1,0 +1,5 @@
+[build]
+  command = "rm -rf .next .netlify && npm run build"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
