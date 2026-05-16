@@ -729,7 +729,18 @@ export default function SchedulerChat() {
                 <h2>Data Controls</h2>
                 <p>Manage local cache and exported conversations.</p>
               </div>
-              <button className="settings-row" onClick={() => signIn("google", { callbackUrl: "/auth/connected" })} disabled={googleConnected}>
+              <button
+                className="settings-row"
+                onClick={() => {
+                  try {
+                    const origin = typeof window !== "undefined" ? window.location.origin : "";
+                    void signIn("google", { callbackUrl: `${origin}/` });
+                  } catch {
+                    void signIn("google");
+                  }
+                }}
+                disabled={googleConnected}
+              >
                 <Icon name="user" />
                 <span style={{ flex: 1 }}>{googleConnected ? "Google connected" : "Connect Google"}</span>
                 <span
