@@ -24,7 +24,7 @@ A Next.js chatbot that uses Gemini to turn natural language into structured cale
 ## Environment variables
 
 - `GEMINI_API_KEY`
-- `GEMINI_MODEL` optional, defaults to `gemini-1.5-flash`
+- `GEMINI_MODEL` optional, defaults to `gemini-2.5-flash`
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`
 - `NEXTAUTH_URL`

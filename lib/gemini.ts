@@ -52,10 +52,13 @@ export async function parseScheduleText(options: {
   }
 
   const client = new GoogleGenerativeAI(apiKey);
-  const configuredModel = process.env.GEMINI_MODEL ?? "gemini-2.0-flash";
+  const configuredModel = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
   const modelCandidates = Array.from(
     new Set([
       configuredModel,
+      "gemini-2.5-flash",
+      "gemini-2.5-flash-lite",
+      "gemini-2.5-pro",
       "gemini-2.0-flash",
       "gemini-2.0-flash-lite",
       "gemini-1.5-flash",

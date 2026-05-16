@@ -4,6 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
+function buildUsername(name?: string | null, email?: string | null) {
+  const source = (name?.trim() || email?.split("@")[0] || "username").toLowerCase();
+  const slug = source.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  return slug || "username";
+}
+
 function hashString(value: string) {
   let hash = 0;
   for (let index = 0; index < value.length; index += 1) {
@@ -17,6 +23,7 @@ export default function ConnectedAuthPage() {
   const router = useRouter();
   const { status, data: session } = useSession();
   const [copied, setCopied] = useState(false);
+  const username = useMemo(() => buildUsername(session?.user?.name, session?.user?.email), [session?.user?.email, session?.user?.name]);
 
   const connectionKey = useMemo(() => {
     const email = session?.user?.email ?? session?.user?.name ?? "neona-user";
@@ -25,10 +32,10 @@ export default function ConnectedAuthPage() {
 
   useEffect(() => {
     if (status === "authenticated") {
-      const timer = window.setTimeout(() => router.replace("/"), 1800);
+      const timer = window.setTimeout(() => router.replace(`/${encodeURIComponent(username)}`), 1800);
       return () => window.clearTimeout(timer);
     }
-  }, [router, status]);
+  }, [router, status, username]);
 
   async function copyKey() {
     await navigator.clipboard.writeText(connectionKey);
@@ -54,7 +61,9 @@ export default function ConnectedAuthPage() {
         >
           {copied ? "Copied" : "Copy key"}
         </button>
-        <p style={{ marginTop: "0.75rem", opacity: 0.6, fontSize: "0.9rem" }}>You will be sent back to Neona automatically.</p>
+        <p style={{ marginTop: "0.75rem", opacity: 0.6, fontSize: "0.9rem" }}>
+          You will be sent to <span style={{ wordBreak: "break-all" }}>/{username}</span> automatically.
+        </p>
       </div>
     </main>
   );
