@@ -5,6 +5,7 @@ import { useMemo, useRef, useState } from "react";
 import { signIn, useSession } from "next-auth/react";
 import ChatInput from "@/components/chat-input";
 import type { ParsedItem } from "@/lib/schemas";
+import { clearOfflineData } from "@/lib/cache-utils";
 
 type Role = "user" | "assistant";
 
@@ -33,6 +34,7 @@ export default function ChatShell() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [clearingCache, setClearingCache] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     { id: uid(), role: "assistant", content: "Hi, I can help schedule events and tasks from natural language." },
   ]);
@@ -124,6 +126,27 @@ export default function ChatShell() {
     }
   }
 
+  async function handleClearOfflineCache() {
+    if (clearingCache) return;
+
+    const confirmed = window.confirm(
+      "Are you sure you want to clear all offline data? This will require you to re-download assets on your next visit.",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setClearingCache(true);
+
+    try {
+      await clearOfflineData({ reload: true });
+    } catch {
+      setClearingCache(false);
+      window.alert("Failed to clear offline cache. Please try again.");
+    }
+  }
+
   const sidebarWidth = sidebarCollapsed ? "md:w-20" : "md:w-72";
 
   return (
@@ -163,16 +186,27 @@ export default function ChatShell() {
             ) : null}
 
             <div className="border-t border-gray-200 p-3 dark:border-white/10">
-              <button
-                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-left text-sm dark:border-white/10 dark:bg-zinc-800"
-                type="button"
-                onClick={() => {
-                  const origin = typeof window !== "undefined" ? window.location.origin : "";
-                  void signIn("google", { callbackUrl: `${origin}/auth/connected` });
-                }}
-              >
-                {googleConnected ? "Google connected" : "Connect Google"}
-              </button>
+              <div className="grid gap-2">
+                <button
+                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-left text-sm dark:border-white/10 dark:bg-zinc-800"
+                  type="button"
+                  onClick={() => {
+                    const origin = typeof window !== "undefined" ? window.location.origin : "";
+                    void signIn("google", { callbackUrl: `${origin}/auth/connected` });
+                  }}
+                >
+                  {googleConnected ? "Google connected" : "Connect Google"}
+                </button>
+
+                <button
+                  className="inline-flex w-full items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300 dark:hover:bg-red-950/50"
+                  type="button"
+                  onClick={() => void handleClearOfflineCache()}
+                  disabled={clearingCache}
+                >
+                  {clearingCache ? "Clearing offline cache..." : "Clear offline cache"}
+                </button>
+              </div>
             </div>
           </div>
         </aside>
@@ -197,6 +231,14 @@ export default function ChatShell() {
                 const origin = typeof window !== "undefined" ? window.location.origin : "";
                 void signIn("google", { callbackUrl: `${origin}/auth/connected` });
               }}>{googleConnected ? "Google connected" : "Connect Google"}</button>
+              <button
+                className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-left text-sm font-medium text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300 dark:hover:bg-red-950/50"
+                type="button"
+                onClick={() => void handleClearOfflineCache()}
+                disabled={clearingCache}
+              >
+                {clearingCache ? "Clearing offline cache..." : "Clear offline cache"}
+              </button>
             </div>
             <div className="mt-5 grid gap-1">
               {chats.map((chat) => (
