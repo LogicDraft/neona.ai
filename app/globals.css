@@ -1419,6 +1419,110 @@ tr:last-child td {
   }
 }
 
+/* Bottom nav */
+.bottom-nav {
+  display: flex;
+  gap: 4px;
+  position: fixed;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  border: 1px solid var(--divider);
+  padding: 8px 10px;
+  border-radius: 999px;
+  box-shadow: var(--soft-shadow);
+  backdrop-filter: blur(8px);
+}
+
+.bn-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  color: var(--muted);
+  text-decoration: none;
+  min-width: 56px;
+  border-radius: 10px;
+}
+
+.bn-item.active {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.bn-icon { display: inline-flex; }
+.bn-label { font-size: 0.7rem; }
+
+/* FAB styles */
+.fab {
+  position: fixed;
+  right: 14px;
+  bottom: 84px;
+  z-index: 80;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  pointer-events: auto;
+}
+
+.fab-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  opacity: 0;
+  transform: translateY(8px) scale(0.98);
+  transition: transform 220ms cubic-bezier(.2,.9,.2,1), opacity 200ms ease;
+  pointer-events: none;
+}
+
+.fab.open .fab-actions {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.fab-action {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--divider);
+  border-radius: 14px;
+  color: var(--text);
+  text-decoration: none;
+  min-width: 180px;
+  box-shadow: var(--soft-shadow);
+}
+
+.fab-action-icon { font-size: 18px; width: 26px; text-align: center; }
+.fab-action-label { font-weight: 600; }
+
+.fab-button {
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border: 0;
+  box-shadow: 0 12px 36px rgba(16,163,127,0.22);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.fab-button:active { transform: scale(0.96); }
+.fab-svg { width: 20px; height: 20px; }
+
+/* Bottom nav active tweaks */
+.bn-item.active { transform: translateY(-4px) scale(1.02); }
+.bn-item { transition: transform 180ms ease, color 180ms ease, background 180ms ease; }
+
+
+
 @media (hover: none) {
   .message-actions {
     opacity: 1;

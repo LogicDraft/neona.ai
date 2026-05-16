@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Providers from "@/app/providers";
+import BottomNav from "@/components/bottom-nav";
+import Fab from "@/components/fab";
 
 export const metadata: Metadata = {
   title: "Neona AI",
@@ -27,7 +29,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <BottomNav />
+          <Fab />
+        </Providers>
       </body>
     </html>
   );
