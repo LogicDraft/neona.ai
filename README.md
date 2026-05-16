@@ -9,7 +9,6 @@ A Next.js chatbot that uses Gemini to turn natural language into structured cale
 - Connect a Google account from Settings with OAuth
 - Create Google Calendar events or Google Tasks entries
 
-
 ## Setup
 
 1. Install dependencies.
