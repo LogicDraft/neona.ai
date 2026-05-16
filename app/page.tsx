@@ -1,5 +1,5 @@
-import SchedulerChat from "@/components/scheduler-chat";
+import ChatShell from "@/components/chat-shell";
 
 export default function Page() {
-  return <SchedulerChat />;
+  return <ChatShell />;
 }

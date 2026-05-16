@@ -2,11 +2,10 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Providers from "@/app/providers";
 import BottomNav from "@/components/bottom-nav";
-import Fab from "@/components/fab";
 
 export const metadata: Metadata = {
   title: "Neona AI",
-  description: "A premium mobile-first AI chat interface for Neona.",
+  description: "A modern AI scheduling assistant.",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: "/icon.svg",
@@ -27,12 +26,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body>
+    <html lang="en" suppressHydrationWarning className="h-full">
+      <body className="h-full bg-white text-zinc-900 antialiased dark:bg-[#212121] dark:text-zinc-100">
         <Providers>
           {children}
           <BottomNav />
-          <Fab />
         </Providers>
       </body>
     </html>

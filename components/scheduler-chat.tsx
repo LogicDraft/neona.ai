@@ -584,6 +584,46 @@ export default function SchedulerChat() {
     setDrawerOpen(false);
   }
 
+  async function clearOfflineCache() {
+    try {
+      if (typeof window !== "undefined") {
+        if ("caches" in window) {
+          const cacheKeys = await caches.keys();
+          await Promise.all(cacheKeys.map((key) => caches.delete(key)));
+        }
+
+        try {
+          localStorage.clear();
+          sessionStorage.clear();
+        } catch {
+          // Ignore storage access errors in restricted contexts.
+        }
+
+        try {
+          if ("indexedDB" in window && typeof indexedDB.databases === "function") {
+            const dbs = await indexedDB.databases();
+            await Promise.all((dbs ?? []).map((db) => (db.name ? new Promise<void>((resolve) => {
+              const req = indexedDB.deleteDatabase(db.name as string);
+              req.onsuccess = () => resolve();
+              req.onerror = () => resolve();
+              req.onblocked = () => resolve();
+            }) : Promise.resolve())));
+          }
+        } catch {
+          // Ignore IndexedDB capability issues.
+        }
+      }
+
+      setHistoryItems([]);
+      setMessages([]);
+      setCopied("Offline cache cleared");
+      window.setTimeout(() => setCopied(null), 1400);
+    } catch {
+      setCopied("Failed to clear cache");
+      window.setTimeout(() => setCopied(null), 1600);
+    }
+  }
+
   const hasTyped = input.trim().length > 0;
 
   return (
@@ -753,7 +793,7 @@ export default function SchedulerChat() {
                 <Icon name="download" />
                 <span>Export conversations</span>
               </button>
-              <button className="settings-row">
+              <button className="settings-row" onClick={() => void clearOfflineCache()}>
                 <Icon name="shield" />
                 <span>Clear offline cache</span>
               </button>
@@ -761,9 +801,33 @@ export default function SchedulerChat() {
 
             <section className="settings-card">
               <div>
-                <h2>About</h2>
-                <p>Neona AI interface, version 1.0.0.</p>
+                <h2>Help center</h2>
+                <p>Support and legal information.</p>
               </div>
+              <button className="settings-row" onClick={() => window.open("https://github.com/LogicDraft", "_blank", "noopener,noreferrer")}> 
+                <Icon name="user" />
+                <span>Github: https://github.com/LogicDraft</span>
+              </button>
+              <button className="settings-row" onClick={() => window.open("mailto:gowdagowtham1025@gmail.com", "_self")}> 
+                <Icon name="edit" />
+                <span>Gmail: gowdagowtham1025@gmail.com</span>
+              </button>
+              <button className="settings-row" onClick={() => window.location.assign("/terms")}> 
+                <Icon name="shield" />
+                <span>Terms of use</span>
+              </button>
+              <button className="settings-row" onClick={() => window.location.assign("/privacy")}> 
+                <Icon name="shield" />
+                <span>Privacy policy</span>
+              </button>
+              <button className="settings-row" onClick={() => window.location.assign("/licenses")}> 
+                <Icon name="download" />
+                <span>Licenses</span>
+              </button>
+              <button className="settings-row" onClick={() => window.location.assign("/about")}> 
+                <Icon name="settings" />
+                <span>About</span>
+              </button>
             </section>
           </section>
         ) : (
