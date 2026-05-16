@@ -106,6 +106,19 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
+  events: {
+    async signIn({ user, account, profile, isNewUser }) {
+      try {
+        console.log("[auth] signIn event", {
+          user: { id: (user as any)?.id ?? null, name: user?.name ?? null, email: user?.email ?? null },
+          account: { provider: account?.provider ?? null, providerAccountId: account?.providerAccountId ?? null },
+          isNewUser: Boolean(isNewUser),
+        });
+      } catch (e) {
+        console.log("[auth] signIn event logging failed", String(e));
+      }
+    },
+  },
   secret: nextAuthSecret,
   debug: process.env.NEXTAUTH_DEBUG === "true",
 };

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { headers } from "next/headers";
 
 function buildUsername(name?: string | null, email?: string | null) {
   const source = (name?.trim() || email?.split("@")[0] || "username").toLowerCase();
@@ -11,7 +12,16 @@ function buildUsername(name?: string | null, email?: string | null) {
 export const dynamic = "force-dynamic";
 
 export default async function ConnectedAuthPage() {
+  const hdrs = await headers();
+  try {
+    console.log("[auth.connected] incoming cookies:", hdrs.get("cookie"));
+  } catch (e) {
+    // ignore
+  }
+
   const session = await getServerSession(authOptions);
+
+  console.log("[auth.connected] server session:", Boolean(session), session?.user?.email ?? null);
 
   if (session) {
     const username = buildUsername(session.user?.name, session.user?.email);
