@@ -2,50 +2,25 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-/* ─────────────────────────────────────────────────────────────────────────
-   SpeechRecognition type shim
-   The Web Speech API is not in TypeScript's default lib — we define
-   just enough to use it safely without installing extra packages.
-───────────────────────────────────────────────────────────────────────── */
+/* ── SpeechRecognition type shim ── */
 interface ISpeechRecognitionResult {
   readonly isFinal: boolean;
   readonly [index: number]: { readonly transcript: string } | undefined;
 }
-
-interface ISpeechRecognitionResultList {
-  readonly length: number;
-  readonly resultIndex: number;
-  readonly results: ISpeechRecognitionResult[];
-}
-
 interface ISpeechRecognitionEvent {
   readonly resultIndex: number;
-  readonly results: {
-    readonly [index: number]: ISpeechRecognitionResult | undefined;
-    readonly length: number;
-  };
+  readonly results: { readonly [index: number]: ISpeechRecognitionResult | undefined; readonly length: number };
 }
-
-interface ISpeechRecognitionErrorEvent {
-  readonly error: string;
-}
-
+interface ISpeechRecognitionErrorEvent { readonly error: string }
 interface ISpeechRecognition extends EventTarget {
-  lang: string;
-  continuous: boolean;
-  interimResults: boolean;
+  lang: string; continuous: boolean; interimResults: boolean;
   onstart: (() => void) | null;
   onresult: ((event: ISpeechRecognitionEvent) => void) | null;
   onerror: ((event: ISpeechRecognitionErrorEvent) => void) | null;
   onend: (() => void) | null;
-  start(): void;
-  stop(): void;
-  abort(): void;
+  start(): void; stop(): void; abort(): void;
 }
-
-interface ISpeechRecognitionConstructor {
-  new (): ISpeechRecognition;
-}
+interface ISpeechRecognitionConstructor { new(): ISpeechRecognition }
 
 function getSpeechRecognitionClass(): ISpeechRecognitionConstructor | null {
   if (typeof window === "undefined") return null;
@@ -54,11 +29,7 @@ function getSpeechRecognitionClass(): ISpeechRecognitionConstructor | null {
   return (w.SpeechRecognition ?? w.webkitSpeechRecognition) as ISpeechRecognitionConstructor | null ?? null;
 }
 
-/* ─────────────────────────────────────────────────────────────────────────
-   Types
-───────────────────────────────────────────────────────────────────────── */
 type VoiceState = "idle" | "listening" | "denied";
-
 type ChatInputProps = {
   value: string;
   onChange: (value: string) => void;
@@ -66,94 +37,52 @@ type ChatInputProps = {
   disabled?: boolean;
 };
 
-/* ─────────────────────────────────────────────────────────────────────────
-   Component
-───────────────────────────────────────────────────────────────────────── */
-export default function ChatInput({
-  value,
-  onChange,
-  onSubmit,
-  disabled = false,
-}: ChatInputProps) {
+export default function ChatInput({ value, onChange, onSubmit, disabled = false }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const recognitionRef = useRef<ISpeechRecognition | null>(null);
-
-  // Detect support at render time (safe — only runs on client)
   const speechSupported = typeof window !== "undefined" && !!getSpeechRecognitionClass();
-
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
   const [interimText, setInterimText] = useState("");
 
-  /* Auto-resize textarea */
+  /* Auto-resize */
   useEffect(() => {
     if (!textareaRef.current) return;
     textareaRef.current.style.height = "0px";
-    const nextHeight = Math.min(textareaRef.current.scrollHeight, 180);
-    textareaRef.current.style.height = `${nextHeight}px`;
+    const h = Math.min(textareaRef.current.scrollHeight, 180);
+    textareaRef.current.style.height = `${h}px`;
   }, [value]);
 
-  /* Cleanup on unmount */
-  useEffect(() => {
-    return () => {
-      recognitionRef.current?.abort();
-    };
-  }, []);
+  useEffect(() => { return () => { recognitionRef.current?.abort() }; }, []);
 
-  /* ── Start recording ── */
   const startListening = useCallback(() => {
     const SR = getSpeechRecognitionClass();
     if (!SR) return;
-
     const rec = new SR();
     recognitionRef.current = rec;
-
     rec.lang = navigator.language || "en-US";
     rec.continuous = true;
     rec.interimResults = true;
-
-    // Keep track of accumulated final text so we can append correctly
     let accumulated = value;
-
     rec.onstart = () => setVoiceState("listening");
-
     rec.onresult = (event: ISpeechRecognitionEvent) => {
       let interim = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const res = event.results[i];
         if (!res) continue;
         const transcript = res[0]?.transcript ?? "";
-        if (res.isFinal) {
-          accumulated += (accumulated ? " " : "") + transcript;
-          onChange(accumulated);
-        } else {
-          interim += transcript;
-        }
+        if (res.isFinal) { accumulated += (accumulated ? " " : "") + transcript; onChange(accumulated); }
+        else { interim += transcript; }
       }
       setInterimText(interim);
     };
-
     rec.onerror = (event: ISpeechRecognitionErrorEvent) => {
-      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-        setVoiceState("denied");
-      } else {
-        setVoiceState("idle");
-      }
+      setVoiceState(event.error === "not-allowed" || event.error === "service-not-allowed" ? "denied" : "idle");
       setInterimText("");
     };
-
-    rec.onend = () => {
-      setVoiceState("idle");
-      setInterimText("");
-    };
-
-    try {
-      rec.start();
-    } catch {
-      setVoiceState("idle");
-    }
+    rec.onend = () => { setVoiceState("idle"); setInterimText(""); };
+    try { rec.start(); } catch { setVoiceState("idle"); }
   }, [value, onChange]);
 
-  /* ── Stop recording ── */
   const stopListening = useCallback(() => {
     recognitionRef.current?.stop();
     recognitionRef.current = null;
@@ -162,52 +91,31 @@ export default function ChatInput({
   }, []);
 
   function handleMicClick() {
-    if (voiceState === "listening") {
-      stopListening();
-    } else {
-      startListening();
-    }
+    if (voiceState === "listening") stopListening();
+    else startListening();
   }
 
   const isListening = voiceState === "listening";
   const hasValue = !!value.trim();
-
   const micTitle = isListening
     ? "Stop recording"
     : voiceState === "denied"
-      ? "Microphone permission denied — check browser settings"
-      : "Use voice input";
+    ? "Microphone permission denied"
+    : "Use voice input";
 
   return (
-    <div
-      className={`w-full rounded-3xl border bg-white/95 p-3 shadow-sm backdrop-blur transition-all duration-200 md:p-4 dark:bg-zinc-800/90 ${
-        isListening
-          ? "border-violet-500/70 ring-2 ring-violet-500/20 dark:border-violet-400/60 dark:ring-violet-400/15"
-          : "border-zinc-300 dark:border-white/10"
-      }`}
-    >
-      {/* ── Listening strip ── */}
+    <div className={`chat-input-bar ${isListening ? "listening" : ""}`}>
+      {/* Voice listening strip */}
       {isListening && (
-        <div className="mb-2 flex items-center gap-2 px-3" aria-live="polite" aria-atomic="true">
-          {/* Animated sound-wave bars */}
+        <div className="flex items-center gap-2 px-1 mb-2" aria-live="polite" aria-atomic="true">
           <span className="flex items-end gap-[3px]" aria-hidden>
-            {[1, 2, 3, 4].map((i) => (
-              <span
-                key={i}
-                className="w-[3px] rounded-full bg-violet-500 dark:bg-violet-400"
-                style={{
-                  height: "12px",
-                  animation: `voice-bar ${0.5 + i * 0.1}s ease-in-out infinite alternate`,
-                  animationDelay: `${i * 0.08}s`,
-                }}
-              />
-            ))}
+            {[1, 2, 3, 4].map((i) => <span key={i} className="voice-bar" />)}
           </span>
-          <span className="text-xs font-medium text-violet-600 dark:text-violet-400">
+          <span className="text-xs font-semibold" style={{ color: "#ef4444" }}>
             {interimText ? "Speaking…" : "Listening…"}
           </span>
           {interimText && (
-            <span className="min-w-0 truncate text-xs italic text-zinc-500 dark:text-zinc-400">
+            <span className="min-w-0 truncate text-xs italic" style={{ color: "var(--text-muted)" }}>
               &ldquo;{interimText}&rdquo;
             </span>
           )}
@@ -229,17 +137,13 @@ export default function ChatInput({
             }
           }}
           rows={1}
-          placeholder={
-            isListening
-              ? interimText || "Listening… speak now"
-              : "Message Neona"
-          }
-          className="max-h-[180px] min-h-[44px] flex-1 resize-none bg-transparent px-3 py-2 text-[15px] leading-6 text-zinc-900 outline-none placeholder:italic placeholder:text-zinc-400 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+          placeholder={isListening ? (interimText || "Listening… speak now") : "Message Neona…"}
+          className="chat-textarea"
           disabled={disabled}
           aria-label="Message input"
         />
 
-        {/* ── Mic button: shown while field is empty ── */}
+        {/* Mic button (when field is empty) */}
         {!hasValue && speechSupported && (
           <button
             id="voice-input-btn"
@@ -249,27 +153,25 @@ export default function ChatInput({
             title={micTitle}
             aria-label={micTitle}
             aria-pressed={isListening}
-            className={`relative inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 disabled:cursor-not-allowed disabled:opacity-40 ${
-              isListening
-                ? "bg-violet-600 text-white shadow-lg shadow-violet-500/30 hover:bg-violet-700"
-                : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600"
-            }`}
+            className={`icon-btn relative ${isListening ? "mic-btn-active" : "mic-btn-idle"}`}
           >
-            {/* Pulse ring while recording */}
             {isListening && (
               <span
-                className="absolute inset-0 animate-ping rounded-full bg-violet-500 opacity-25"
                 aria-hidden
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  borderRadius: "50%",
+                  background: "rgba(220,38,38,0.4)",
+                  animation: "ping-ring 1s ease-out infinite",
+                }}
               />
             )}
-
             {isListening ? (
-              /* Stop square */
               <svg viewBox="0 0 24 24" className="relative h-4 w-4" fill="currentColor" aria-hidden>
                 <rect x="6" y="6" width="12" height="12" rx="2" />
               </svg>
             ) : (
-              /* Mic */
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3Z" />
                 <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
@@ -279,31 +181,27 @@ export default function ChatInput({
           </button>
         )}
 
-        {/* ── Send button: shown when text is present (or voice unsupported) ── */}
+        {/* Send button */}
         {(hasValue || !speechSupported) && (
           <button
             id="send-message-btn"
             type="button"
-            onClick={() => {
-              if (isListening) stopListening();
-              onSubmit();
-            }}
+            onClick={() => { if (isListening) stopListening(); onSubmit(); }}
             disabled={disabled || !hasValue}
-            className="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-zinc-900 text-white transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+            className="icon-btn send-btn"
             aria-label="Send message"
           >
-            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M22 2 11 13" />
-              <path d="m22 2-7 20-4-9-9-4 20-7Z" />
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M22 2 11 13" /><path d="m22 2-7 20-4-9-9-4 20-7Z" />
             </svg>
           </button>
         )}
       </div>
 
-      {/* Mic permission denied banner */}
+      {/* Permission denied banner */}
       {voiceState === "denied" && (
-        <p role="alert" className="mt-1.5 px-3 text-xs text-red-500 dark:text-red-400">
-          Microphone access was blocked. Enable it in your browser&apos;s site settings and refresh.
+        <p role="alert" className="mt-2 px-1 text-xs" style={{ color: "#ef4444" }}>
+          Microphone access was blocked. Enable it in browser site settings and refresh.
         </p>
       )}
     </div>

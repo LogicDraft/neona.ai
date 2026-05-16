@@ -1,30 +1,79 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import { signIn, useSession } from "next-auth/react";
 import ChatInput from "@/components/chat-input";
 import type { ParsedItem } from "@/lib/schemas";
 import { clearOfflineData } from "@/lib/cache-utils";
+import { getStoredModelId, getModelById } from "@/lib/model-config";
+import { ModelSelectorSheet } from "@/components/model-selector-sheet";
 
 type Role = "user" | "assistant";
-
-type Message = {
-  id: string;
-  role: Role;
-  content: string;
-};
+type Message = { id: string; role: Role; content: string; ts?: number };
 
 function uid() {
   return Math.random().toString(36).slice(2, 10);
 }
 
 function formatParsed(item: ParsedItem) {
-  const when = item.allDay ? `${item.date} all day` : `${item.date} ${item.startTime ?? ""}`.trim();
-  return [`I understood this as a ${item.kind}: ${item.title}.`, `When: ${when} (${item.timeZone})`, item.description ? `Details: ${item.description}` : null]
+  const when = item.allDay
+    ? `${item.date} all day`
+    : `${item.date} ${item.startTime ?? ""}`.trim();
+  return [`I understood this as a ${item.kind}: **${item.title}**.`, `📅 When: ${when} (${item.timeZone})`, item.description ? `📝 Details: ${item.description}` : null]
     .filter(Boolean)
     .join("\n");
 }
+
+/* ── Thinking indicator ── */
+function ThinkingDots() {
+  return (
+    <div className="flex items-center gap-1 px-4 py-3 msg-bubble-ai inline-flex">
+      <span className="thinking-dot" />
+      <span className="thinking-dot" />
+      <span className="thinking-dot" />
+    </div>
+  );
+}
+
+/* ── Message row ── */
+function MessageRow({ message }: { message: Message }) {
+  const isUser = message.role === "user";
+  return (
+    <div className={`flex items-end gap-2.5 msg-animate ${isUser ? "flex-row-reverse" : "flex-row"}`}>
+      {!isUser && (
+        <div className="ai-avatar flex-shrink-0">N</div>
+      )}
+      <div
+        className={`max-w-[80%] px-4 py-3 text-[0.9375rem] leading-relaxed whitespace-pre-wrap break-words md:max-w-[68%] ${
+          isUser ? "msg-bubble-user" : "msg-bubble-ai"
+        }`}
+      >
+        {message.content}
+      </div>
+    </div>
+  );
+}
+
+/* ── Sidebar chat item ── */
+function ChatItem({ label, active }: { label: string; active?: boolean }) {
+  return (
+    <button type="button" className={`sidebar-item ${active ? "active" : ""}`}>
+      <svg viewBox="0 0 24 24" className="h-4 w-4 flex-shrink-0 opacity-60" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+      </svg>
+      <span className="sidebar-chat-text">{label}</span>
+    </button>
+  );
+}
+
+/* ── Suggestion chips shown when no conversation ── */
+const SUGGESTIONS = [
+  "Schedule a meeting tomorrow at 3pm",
+  "Remind me to call John on Friday",
+  "Add team lunch next Monday noon",
+  "Block focus time every morning 9–11am",
+];
 
 export default function ChatShell() {
   const { data: session } = useSession();
@@ -32,59 +81,79 @@ export default function ChatShell() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [modelSheetOpen, setModelSheetOpen] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [clearingCache, setClearingCache] = useState(false);
+  const [currentModelId, setCurrentModelId] = useState(() =>
+    typeof window !== "undefined" ? getStoredModelId() : "neona-3-5"
+  );
   const [messages, setMessages] = useState<Message[]>([
-    { id: uid(), role: "assistant", content: "Hi, I can help schedule events and tasks from natural language." },
+    {
+      id: uid(),
+      role: "assistant",
+      content: "Hi! I'm Neona ✨\nTell me what you'd like to schedule, and I'll handle the rest — events, tasks, reminders, you name it.",
+    },
   ]);
   const endRef = useRef<HTMLDivElement | null>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
 
-  const chats = useMemo(
-    () => [
-      "Design review",
-      "Weekly status reminder",
-      "Product launch checklist",
-      "Follow-up with Maya",
-    ],
-    [],
-  );
+  const currentModel = getModelById(currentModelId);
 
-  async function submit() {
-    const text = input.trim();
-    if (!text || loading) return;
+  const chats = useMemo(() => [
+    "Design review meeting",
+    "Weekly status reminder",
+    "Product launch checklist",
+    "Follow-up with Maya",
+    "Q3 planning session",
+  ], []);
+
+  // Close profile dropdown on outside click
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfileOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  async function submit(text?: string) {
+    const finalText = (text ?? input).trim();
+    if (!finalText || loading) return;
 
     setInput("");
     setLoading(true);
-    setMessages((current) => [...current, { id: uid(), role: "user", content: text }]);
+    setMessages((m) => [...m, { id: uid(), role: "user", content: finalText, ts: Date.now() }]);
 
     try {
       const parseResponse = await fetch("/api/parse", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC" }),
+        body: JSON.stringify({
+          text: finalText,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+        }),
       });
       const parsed = (await parseResponse.json()) as { item?: ParsedItem; error?: string };
 
-      if (!parseResponse.ok || !parsed.item) {
-        throw new Error(parsed.error ?? "Unable to parse request.");
-      }
+      if (!parseResponse.ok || !parsed.item) throw new Error(parsed.error ?? "Unable to parse request.");
 
       const item = parsed.item;
 
       if (item.clarification) {
-        const clarification = item.clarification;
-        setMessages((current) => [...current, { id: uid(), role: "assistant", content: clarification }]);
+        setMessages((m) => [...m, { id: uid(), role: "assistant", content: item.clarification! }]);
         return;
       }
 
       if (!googleConnected) {
-        setMessages((current) => [
-          ...current,
+        setMessages((m) => [
+          ...m,
           {
             id: uid(),
             role: "assistant",
-            content: `${formatParsed(item)}\n\nConnect Google from the sidebar menu and send this again to create it automatically.`,
+            content: `${formatParsed(item)}\n\nConnect Google from the sidebar to create this automatically.`,
           },
         ]);
         return;
@@ -97,28 +166,21 @@ export default function ChatShell() {
       });
       const scheduled = (await scheduleResponse.json()) as { result?: { provider: "calendar" | "tasks"; summary: string }; error?: string };
 
-      if (!scheduleResponse.ok || !scheduled.result) {
-        throw new Error(scheduled.error ?? "Unable to create item.");
-      }
+      if (!scheduleResponse.ok || !scheduled.result) throw new Error(scheduled.error ?? "Unable to create item.");
 
       const result = scheduled.result;
-
-      setMessages((current) => [
-        ...current,
+      setMessages((m) => [
+        ...m,
         {
           id: uid(),
           role: "assistant",
-          content: `${formatParsed(item)}\n\nAdded to ${result.provider === "tasks" ? "Google Tasks" : "Google Calendar"}: ${result.summary}`,
+          content: `${formatParsed(item)}\n\n✅ Added to ${result.provider === "tasks" ? "Google Tasks" : "Google Calendar"}: **${result.summary}**`,
         },
       ]);
     } catch (error) {
-      setMessages((current) => [
-        ...current,
-        {
-          id: uid(),
-          role: "assistant",
-          content: error instanceof Error ? error.message : "Something went wrong.",
-        },
+      setMessages((m) => [
+        ...m,
+        { id: uid(), role: "assistant", content: error instanceof Error ? error.message : "Something went wrong." },
       ]);
     } finally {
       setLoading(false);
@@ -128,197 +190,334 @@ export default function ChatShell() {
 
   async function handleClearOfflineCache() {
     if (clearingCache) return;
-
-    const confirmed = window.confirm(
-      "Are you sure you want to clear all offline data? This will require you to re-download assets on your next visit.",
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
+    const confirmed = window.confirm("Clear all offline data? You'll re-download assets on next visit.");
+    if (!confirmed) return;
     setClearingCache(true);
-
     try {
       await clearOfflineData({ reload: true });
     } catch {
       setClearingCache(false);
-      window.alert("Failed to clear offline cache. Please try again.");
+      window.alert("Failed to clear offline cache.");
     }
   }
 
-  const sidebarWidth = sidebarCollapsed ? "md:w-20" : "md:w-72";
+  const isFirstMessage = messages.length <= 1;
 
-  return (
-    <div className="relative flex h-[100dvh] w-full overflow-hidden bg-white text-zinc-900 dark:bg-[#212121] dark:text-zinc-100">
-      <div className="hidden md:block">
-        <aside className={`h-full border-r border-gray-200 bg-gray-50 transition-all dark:border-white/10 dark:bg-zinc-900 ${sidebarWidth}`}>
-          <div className="flex h-full flex-col">
-            <div className="flex items-center justify-between px-3 pt-4">
-              {!sidebarCollapsed ? <span className="text-sm font-semibold">Neona</span> : null}
-              <button
-                type="button"
-                onClick={() => setSidebarCollapsed((v) => !v)}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-zinc-700 dark:border-white/10 dark:bg-zinc-800 dark:text-zinc-200"
-                aria-label="Collapse sidebar"
-              >
-                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
-              </button>
-            </div>
-
-            <div className="px-3 pt-3">
-              <button className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-left text-sm font-medium dark:border-white/10 dark:bg-zinc-800" type="button">
-                + New chat
-              </button>
-            </div>
-
-            {!sidebarCollapsed ? (
-              <div className="scrollbar-thin mt-4 flex-1 overflow-y-auto px-3">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Recent</p>
-                <div className="grid gap-1">
-                  {chats.map((chat) => (
-                    <button key={chat} className="rounded-lg px-3 py-2 text-left text-sm text-zinc-700 hover:bg-gray-100 dark:text-zinc-300 dark:hover:bg-zinc-800" type="button">
-                      {chat}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-
-            <div className="border-t border-gray-200 p-3 dark:border-white/10">
-              <div className="grid gap-2">
-                <button
-                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-left text-sm dark:border-white/10 dark:bg-zinc-800"
-                  type="button"
-                  onClick={() => {
-                    const origin = typeof window !== "undefined" ? window.location.origin : "";
-                    void signIn("google", { callbackUrl: `${origin}/auth/connected` });
-                  }}
-                >
-                  {googleConnected ? "Google connected" : "Connect Google"}
-                </button>
-
-                <button
-                  className="inline-flex w-full items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300 dark:hover:bg-red-950/50"
-                  type="button"
-                  onClick={() => void handleClearOfflineCache()}
-                  disabled={clearingCache}
-                >
-                  {clearingCache ? "Clearing offline cache..." : "Clear offline cache"}
-                </button>
-              </div>
-            </div>
+  /* ── Sidebar (desktop) ── */
+  const Sidebar = (
+    <aside className={`sidebar hidden md:flex ${sidebarCollapsed ? "collapsed" : ""}`}>
+      {/* Logo row */}
+      <div className="flex items-center justify-between px-3 pt-4 pb-3 flex-shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <div
+            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl text-white text-sm font-black neona-gradient"
+            aria-hidden
+          >
+            N
           </div>
-        </aside>
+          <span className="sidebar-logo-text neona-text-gradient">Neona.ai</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => setSidebarCollapsed((v) => !v)}
+          className="collapse-btn"
+          aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </button>
       </div>
 
-      {drawerOpen ? (
+      {/* New chat */}
+      <div className="px-2 pb-2 flex-shrink-0">
+        <button className="new-chat-btn" type="button">
+          <svg viewBox="0 0 24 24" className="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          <span className="new-chat-btn-label sidebar-chat-text">New chat</span>
+        </button>
+      </div>
+
+      {/* Chat list */}
+      <div className="scrollbar-thin flex-1 overflow-y-auto px-2 py-1">
+        <p className="sidebar-label">Recent</p>
+        <div className="flex flex-col gap-0.5">
+          {chats.map((chat, i) => (
+            <ChatItem key={chat} label={chat} active={i === 0} />
+          ))}
+        </div>
+      </div>
+
+      {/* Bottom actions */}
+      <div style={{ borderTop: "1px solid var(--border)" }} className="p-2 flex flex-col gap-2 flex-shrink-0">
+        {/* Google connect */}
+        <button
+          type="button"
+          onClick={() => {
+            const origin = typeof window !== "undefined" ? window.location.origin : "";
+            void signIn("google", { callbackUrl: `${origin}/auth/connected` });
+          }}
+          className={`google-pill w-full justify-center ${googleConnected ? "connected" : "disconnected"}`}
+        >
+          <span className={`status-dot ${googleConnected ? "online" : "offline"}`} />
+          <span className="sidebar-chat-text">{googleConnected ? "Google connected" : "Connect Google"}</span>
+        </button>
+
+        {/* Clear cache */}
+        <button
+          type="button"
+          onClick={() => void handleClearOfflineCache()}
+          disabled={clearingCache}
+          className="sidebar-item justify-center text-red-500 hover:!bg-red-500/10 disabled:opacity-50"
+          style={{ color: "var(--neona-error, #ef4444)" }}
+        >
+          <svg viewBox="0 0 24 24" className="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" />
+          </svg>
+          <span className="sidebar-chat-text" style={{ color: "#ef4444" }}>
+            {clearingCache ? "Clearing…" : "Clear offline cache"}
+          </span>
+        </button>
+
+        {/* Links */}
+        <div className="flex flex-col gap-0.5">
+          {[
+            { href: "/help", label: "Help center" },
+            { href: "/settings", label: "Settings" },
+            { href: "/about", label: "About" },
+          ].map(({ href, label }) => (
+            <Link key={href} href={href} className="sidebar-item">
+              <span className="sidebar-chat-text text-xs">{label}</span>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </aside>
+  );
+
+  return (
+    <div style={{ display: "flex", height: "100dvh", width: "100%", overflow: "hidden", background: "var(--surface-0)", color: "var(--text-primary)" }}>
+      {Sidebar}
+
+      {/* Mobile drawer */}
+      {drawerOpen && (
         <div className="md:hidden">
-          <button
-            type="button"
-            aria-label="Close menu"
-            className="fixed inset-0 z-40 bg-black/50"
-            onClick={() => setDrawerOpen(false)}
-          />
-          <aside className="fixed inset-y-0 left-0 z-50 w-72 border-r border-gray-200 bg-white p-4 dark:border-white/10 dark:bg-zinc-900">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold">Neona</span>
-              <button type="button" onClick={() => setDrawerOpen(false)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 dark:border-white/10">✕</button>
-            </div>
-            <div className="mt-4 grid gap-2">
-              <button className="rounded-xl border border-gray-200 px-3 py-2 text-left text-sm dark:border-white/10" type="button">+ New chat</button>
-              <button className="rounded-xl border border-gray-200 px-3 py-2 text-left text-sm dark:border-white/10" type="button" onClick={() => {
-                const origin = typeof window !== "undefined" ? window.location.origin : "";
-                void signIn("google", { callbackUrl: `${origin}/auth/connected` });
-              }}>{googleConnected ? "Google connected" : "Connect Google"}</button>
+          <div className="drawer-backdrop" onClick={() => setDrawerOpen(false)} role="presentation" />
+          <aside className="drawer">
+            {/* Drawer header */}
+            <div className="flex items-center justify-between px-4 pt-5 pb-3 flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl text-white text-sm font-black neona-gradient">N</div>
+                <span className="text-base font-extrabold neona-text-gradient">Neona.ai</span>
+              </div>
               <button
-                className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-left text-sm font-medium text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300 dark:hover:bg-red-950/50"
                 type="button"
-                onClick={() => void handleClearOfflineCache()}
-                disabled={clearingCache}
+                onClick={() => setDrawerOpen(false)}
+                className="collapse-btn"
+                aria-label="Close menu"
               >
-                {clearingCache ? "Clearing offline cache..." : "Clear offline cache"}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
               </button>
             </div>
-            <div className="mt-5 grid gap-1">
-              {chats.map((chat) => (
-                <button key={chat} className="rounded-lg px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-zinc-800" type="button">{chat}</button>
-              ))}
+
+            {/* New chat */}
+            <div className="px-3 pb-3 flex-shrink-0">
+              <button className="new-chat-btn" type="button">
+                <svg viewBox="0 0 24 24" className="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                New chat
+              </button>
             </div>
-            <div className="mt-6 grid gap-1 border-t border-gray-200 pt-4 text-sm dark:border-white/10">
-              <Link href="/help" className="rounded-lg px-3 py-2 hover:bg-gray-100 dark:hover:bg-zinc-800">Help center</Link>
-              <Link href="/terms" className="rounded-lg px-3 py-2 hover:bg-gray-100 dark:hover:bg-zinc-800">Terms of use</Link>
-              <Link href="/privacy" className="rounded-lg px-3 py-2 hover:bg-gray-100 dark:hover:bg-zinc-800">Privacy policy</Link>
-              <Link href="/licenses" className="rounded-lg px-3 py-2 hover:bg-gray-100 dark:hover:bg-zinc-800">Licenses</Link>
-              <Link href="/about" className="rounded-lg px-3 py-2 hover:bg-gray-100 dark:hover:bg-zinc-800">About</Link>
+
+            {/* Chat list */}
+            <div className="scrollbar-thin flex-1 overflow-y-auto px-3">
+              <p className="sidebar-label" style={{ maxHeight: "none", opacity: 1 }}>Recent</p>
+              <div className="flex flex-col gap-0.5">
+                {chats.map((chat, i) => (
+                  <button key={chat} className={`sidebar-item ${i === 0 ? "active" : ""}`} type="button">{chat}</button>
+                ))}
+              </div>
+            </div>
+
+            {/* Drawer footer */}
+            <div className="px-3 pb-6 pt-3 flex flex-col gap-2" style={{ borderTop: "1px solid var(--border)" }}>
+              <button
+                type="button"
+                onClick={() => { const o = window.location.origin; void signIn("google", { callbackUrl: `${o}/auth/connected` }); }}
+                className={`google-pill w-full justify-center ${googleConnected ? "connected" : "disconnected"}`}
+              >
+                <span className={`status-dot ${googleConnected ? "online" : "offline"}`} />
+                {googleConnected ? "Google connected" : "Connect Google"}
+              </button>
+              {[{ href: "/help", label: "Help" }, { href: "/terms", label: "Terms" }, { href: "/privacy", label: "Privacy" }, { href: "/about", label: "About" }].map(({ href, label }) => (
+                <Link key={href} href={href} className="sidebar-item" onClick={() => setDrawerOpen(false)}>{label}</Link>
+              ))}
             </div>
           </aside>
         </div>
-      ) : null}
+      )}
 
-      <main className="relative flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 border-b border-gray-200 bg-white/90 px-4 pt-safe backdrop-blur md:px-6 dark:border-white/10 dark:bg-[#212121]/90">
-          <div className="mx-auto flex h-14 max-w-3xl items-center justify-between">
+      {/* Main content */}
+      <main style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0, overflow: "hidden" }}>
+        {/* Header */}
+        <header className="chat-header">
+          {/* Hamburger (mobile) */}
+          <button
+            type="button"
+            className="collapse-btn md:hidden"
+            onClick={() => setDrawerOpen(true)}
+            aria-label="Open navigation"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 12h18M3 6h18M3 18h18" />
+            </svg>
+          </button>
+
+          {/* Center: logo (mobile) + model badge */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-extrabold neona-text-gradient md:hidden">Neona.ai</span>
+            <button
+              id="header-model-badge"
+              type="button"
+              className="model-badge hidden md:inline-flex"
+              onClick={() => setModelSheetOpen(true)}
+              title="Change AI model"
+            >
+              <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="3" /><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
+              </svg>
+              {currentModel.name}
+            </button>
+          </div>
+
+          {/* Right: Google status + profile */}
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 md:hidden dark:border-white/10"
-              onClick={() => setDrawerOpen(true)}
-              aria-label="Open navigation"
+              className={`google-pill hidden sm:inline-flex ${googleConnected ? "connected" : "disconnected"}`}
+              onClick={() => {
+                const origin = typeof window !== "undefined" ? window.location.origin : "";
+                void signIn("google", { callbackUrl: `${origin}/auth/connected` });
+              }}
             >
-              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12h18M3 6h18M3 18h18" /></svg>
+              <span className={`status-dot ${googleConnected ? "online" : "offline"}`} />
+              {googleConnected ? "Connected" : "Connect Google"}
             </button>
-            <span className="text-sm font-semibold">Neona</span>
-            <div className="relative">
+
+            {/* Profile */}
+            <div className="relative" ref={profileRef}>
               <button
                 type="button"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 dark:border-white/10"
+                id="profile-menu-btn"
+                className="profile-avatar"
                 onClick={() => setProfileOpen((v) => !v)}
-                aria-label="Open profile menu"
+                aria-label="Profile menu"
+                aria-expanded={profileOpen}
               >
-                N
+                {session?.user?.name?.[0]?.toUpperCase() ?? "N"}
               </button>
-              {profileOpen ? (
-                <div className="absolute right-0 z-50 mt-2 grid min-w-52 gap-1 rounded-xl border border-gray-200 bg-white p-1 shadow-xl dark:border-white/10 dark:bg-zinc-900">
-                  <Link href="/help" className="rounded-lg px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-zinc-800">Help center</Link>
-                  <Link href="/terms" className="rounded-lg px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-zinc-800">Terms of use</Link>
-                  <Link href="/privacy" className="rounded-lg px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-zinc-800">Privacy policy</Link>
-                  <Link href="/licenses" className="rounded-lg px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-zinc-800">Licenses</Link>
-                  <Link href="/about" className="rounded-lg px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-zinc-800">About</Link>
+
+              {profileOpen && (
+                <div className="dropdown-menu">
+                  {session?.user && (
+                    <div className="px-3 py-2 mb-1" style={{ borderBottom: "1px solid var(--border)" }}>
+                      <p className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>{session.user.name}</p>
+                      <p className="text-xs" style={{ color: "var(--text-muted)" }}>{session.user.email}</p>
+                    </div>
+                  )}
+                  {[
+                    { href: "/settings", label: "Settings" },
+                    { href: "/help", label: "Help center" },
+                    { href: "/terms", label: "Terms of use" },
+                    { href: "/privacy", label: "Privacy policy" },
+                    { href: "/licenses", label: "Licenses" },
+                    { href: "/about", label: "About" },
+                  ].map(({ href, label }) => (
+                    <Link key={href} href={href} className="dropdown-item" onClick={() => setProfileOpen(false)}>{label}</Link>
+                  ))}
                 </div>
-              ) : null}
+              )}
             </div>
           </div>
         </header>
 
-        <div className="scrollbar-thin flex-1 overflow-y-auto">
-          <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 py-6 pb-28 md:px-6">
-            {messages.map((message) => (
-              <div key={message.id} className={`w-full ${message.role === "user" ? "flex justify-end" : "flex justify-start"}`}>
-                <div
-                  className={`max-w-[92%] whitespace-pre-wrap break-words rounded-2xl px-4 py-3 text-[15px] leading-6 md:max-w-[78%] ${
-                    message.role === "user"
-                      ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-700 dark:text-zinc-100"
-                      : "bg-transparent text-zinc-800 dark:text-zinc-200"
-                  }`}
-                >
-                  {message.content}
+        {/* Messages area */}
+        <div className="scrollbar-thin flex-1 overflow-y-auto" style={{ background: "var(--surface-0)" }}>
+          <div className="mx-auto w-full max-w-3xl flex flex-col gap-4 px-4 py-6 pb-4 md:px-6">
+
+            {/* Empty state with suggestions */}
+            {isFirstMessage && (
+              <div style={{ textAlign: "center", padding: "2rem 1rem 1.5rem" }}>
+                <div className="ai-avatar mx-auto mb-4" style={{ width: 52, height: 52, borderRadius: 16, fontSize: 22 }}>N</div>
+                <h1 className="text-xl font-bold mb-1" style={{ color: "var(--text-primary)" }}>What can I schedule for you?</h1>
+                <p className="text-sm mb-6" style={{ color: "var(--text-muted)" }}>Describe any event, task, or reminder in natural language.</p>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {SUGGESTIONS.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      className="hint-chip"
+                      onClick={() => void submit(s)}
+                    >
+                      {s}
+                    </button>
+                  ))}
                 </div>
               </div>
+            )}
+
+            {messages.map((msg) => (
+              <MessageRow key={msg.id} message={msg} />
             ))}
 
-            {loading ? (
-              <div className="text-sm text-zinc-500 dark:text-zinc-400">Thinking...</div>
-            ) : null}
+            {loading && (
+              <div className="flex items-end gap-2.5">
+                <div className="ai-avatar flex-shrink-0">N</div>
+                <ThinkingDots />
+              </div>
+            )}
             <div ref={endRef} />
           </div>
         </div>
 
-        <div className="border-t border-gray-200 bg-white/95 px-4 py-3 pb-safe backdrop-blur md:px-6 dark:border-white/10 dark:bg-[#212121]/95">
+        {/* Input bar */}
+        <div
+          style={{
+            background: "var(--surface-0)",
+            borderTop: "1px solid var(--border)",
+            padding: "0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom))",
+          }}
+        >
           <div className="mx-auto w-full max-w-3xl">
-            <ChatInput value={input} onChange={setInput} onSubmit={submit} disabled={loading} />
+            {/* Mobile: model badge above input */}
+            <div className="flex items-center justify-between mb-2 md:hidden">
+              <button
+                type="button"
+                className="model-badge"
+                onClick={() => setModelSheetOpen(true)}
+              >
+                <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="3" /><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
+                </svg>
+                {currentModel.name}
+              </button>
+              <span className="text-xs" style={{ color: "var(--text-muted)" }}>Enter or ⇧+Enter for newline</span>
+            </div>
+            <ChatInput value={input} onChange={setInput} onSubmit={() => void submit()} disabled={loading} />
           </div>
         </div>
       </main>
+
+      {/* Model selector sheet */}
+      <ModelSelectorSheet
+        open={modelSheetOpen}
+        onClose={() => setModelSheetOpen(false)}
+        onSelect={(id) => setCurrentModelId(id)}
+      />
     </div>
   );
 }
