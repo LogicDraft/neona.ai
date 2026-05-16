@@ -68,8 +68,11 @@ export default function ChatShell() {
         throw new Error(parsed.error ?? "Unable to parse request.");
       }
 
-      if (parsed.item.clarification) {
-        setMessages((current) => [...current, { id: uid(), role: "assistant", content: parsed.item.clarification as string }]);
+      const item = parsed.item;
+
+      if (item.clarification) {
+        const clarification = item.clarification;
+        setMessages((current) => [...current, { id: uid(), role: "assistant", content: clarification }]);
         return;
       }
 
@@ -79,7 +82,7 @@ export default function ChatShell() {
           {
             id: uid(),
             role: "assistant",
-            content: `${formatParsed(parsed.item)}\n\nConnect Google from the sidebar menu and send this again to create it automatically.`,
+            content: `${formatParsed(item)}\n\nConnect Google from the sidebar menu and send this again to create it automatically.`,
           },
         ]);
         return;
@@ -96,12 +99,14 @@ export default function ChatShell() {
         throw new Error(scheduled.error ?? "Unable to create item.");
       }
 
+      const result = scheduled.result;
+
       setMessages((current) => [
         ...current,
         {
           id: uid(),
           role: "assistant",
-          content: `${formatParsed(parsed.item)}\n\nAdded to ${scheduled.result.provider === "tasks" ? "Google Tasks" : "Google Calendar"}: ${scheduled.result.summary}`,
+          content: `${formatParsed(item)}\n\nAdded to ${result.provider === "tasks" ? "Google Tasks" : "Google Calendar"}: ${result.summary}`,
         },
       ]);
     } catch (error) {
