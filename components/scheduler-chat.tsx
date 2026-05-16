@@ -734,7 +734,7 @@ export default function SchedulerChat() {
                 onClick={() => {
                   try {
                     const origin = typeof window !== "undefined" ? window.location.origin : "";
-                    void signIn("google", { callbackUrl: `${origin}/` });
+                    void signIn("google", { callbackUrl: `${origin}/auth/connected` });
                   } catch {
                     void signIn("google");
                   }
