@@ -1356,6 +1356,67 @@ tr:last-child td {
   .composer {
     border-radius: 26px;
   }
+
+  /* Mobile-friendly adjustments */
+  .icon-button {
+    width: 52px;
+    height: 52px;
+    min-width: 52px;
+    min-height: 52px;
+  }
+
+  .wide-action {
+    width: calc(100vw - 28px);
+    margin-inline: auto;
+    padding: 12px 14px;
+  }
+
+  .suggestion-card {
+    min-height: 88px;
+    padding: 18px;
+    border-radius: 20px;
+  }
+
+  .suggestion-card span {
+    font-size: 1.02rem;
+  }
+
+  .composer {
+    grid-template-columns: 52px 1fr 52px 52px;
+    padding: 10px;
+    gap: 8px;
+    min-height: 72px;
+  }
+
+  .composer textarea {
+    min-height: 56px;
+    padding: 12px 6px;
+    font-size: 1rem;
+  }
+
+  .topbar {
+    min-height: calc(56px + env(safe-area-inset-top));
+    padding: calc(6px + env(safe-area-inset-top)) 12px 6px;
+  }
+
+  .home-panel {
+    padding: 36px 16px 24px;
+  }
+
+  .message-meta {
+    font-size: 0.84rem;
+  }
+
+  .chat-bubble {
+    padding: 14px 16px;
+    font-size: 1rem;
+  }
+
+  .conversation {
+    padding-right: 8px;
+    padding-left: 8px;
+    gap: 18px;
+  }
 }
 
 @media (hover: none) {
