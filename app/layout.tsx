@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import "../minimal.css";
 import Providers from "@/app/providers";
 import BottomNav from "@/components/bottom-nav";
 
@@ -27,7 +28,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" data-theme="dark" suppressHydrationWarning className="h-full">
+    <html lang="en" data-theme="light" data-ui="minimal" suppressHydrationWarning className="h-full">
       <body className="h-full antialiased">
         <Providers>
           {children}
