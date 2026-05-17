@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { signIn, useSession } from "next-auth/react";
 import ChatInput from "@/components/chat-input";
 import type { ParsedItem } from "@/lib/schemas";
@@ -72,9 +72,17 @@ function useToast() {
 
 const SUGGESTIONS = [
   { icon: "📅", label: "Create an event", desc: "Add to Google Calendar instantly", text: "Create an event : " },
-  { icon: "✅", label: "Create a task", desc: "Add to Google Tasks", text: "Create a task : " },
-  { icon: "⏰", label: "Set a reminder", desc: "Never miss what matters", text: "Set a reminder : " },
-  { icon: "🗓", label: "Plan my day", desc: "Organize your schedule", text: "Plan my day : " },
+  { icon: "✅", label: "Create a task",   desc: "Add to Google Tasks",             text: "Create a task : " },
+  { icon: "⏰", label: "Set a reminder",  desc: "Never miss what matters",         text: "Set a reminder : " },
+  { icon: "🗓", label: "Plan my day",     desc: "Organize your schedule",          text: "Plan my day : " },
+];
+
+const RECENT_CHATS = [
+  { label: "Schedul", icon: "📅" },
+  { label: "Birthday dinner reminder",    icon: "🎂" },
+  { label: "Dentist appointment Friday",  icon: "🦷" },
+  { label: "Gym every morning 7am",       icon: "💪" },
+  { label: "Project deadline next week",  icon: "⚡" },
 ];
 
 
@@ -223,7 +231,7 @@ export default function ChatShell() {
         <div className="scrollbar-thin" style={{ flex: 1, overflowY: "auto", padding: "0 8px" }}>
           <div className="sidebar-label" style={{ maxHeight: "none", opacity: 1 }}>Recent</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            {chats.map((chat, i) => (
+            {RECENT_CHATS.map((chat, i) => (
               <ChatItem key={chat.label} label={chat.label} icon={chat.icon} active={i === 0} />
             ))}
           </div>
