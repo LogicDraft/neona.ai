@@ -46,15 +46,7 @@ function MessageRow({ message }: { message: Message }) {
   );
 }
 
-/* ── Sidebar chat item ── */
-function ChatItem({ label, active, icon = "💬" }: { label: string; active?: boolean; icon?: string }) {
-  return (
-    <button type="button" className={`sidebar-item ${active ? "active" : ""}`}>
-      <span style={{ fontSize: 14, flexShrink: 0 }}>{icon}</span>
-      <span className="sidebar-chat-text">{label}</span>
-    </button>
-  );
-}
+
 
 /* ── Toast ── */
 function useToast() {
@@ -75,14 +67,6 @@ const SUGGESTIONS = [
   { icon: "✅", label: "Create a task",   desc: "Add to Google Tasks",             text: "Create a task : " },
   { icon: "⏰", label: "Set a reminder",  desc: "Never miss what matters",         text: "Set a reminder : " },
   { icon: "🗓", label: "Plan my day",     desc: "Organize your schedule",          text: "Plan my day : " },
-];
-
-const RECENT_CHATS = [
-  { label: "Schedul", icon: "📅" },
-  { label: "Birthday dinner reminder",    icon: "🎂" },
-  { label: "Dentist appointment Friday",  icon: "🦷" },
-  { label: "Gym every morning 7am",       icon: "💪" },
-  { label: "Project deadline next week",  icon: "⚡" },
 ];
 
 
@@ -227,15 +211,8 @@ export default function ChatShell() {
           />
         </div>
 
-        {/* Chat list */}
-        <div className="scrollbar-thin" style={{ flex: 1, overflowY: "auto", padding: "0 8px" }}>
-          <div className="sidebar-label" style={{ maxHeight: "none", opacity: 1 }}>Recent</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            {RECENT_CHATS.map((chat, i) => (
-              <ChatItem key={chat.label} label={chat.label} icon={chat.icon} active={i === 0} />
-            ))}
-          </div>
-        </div>
+        {/* Spacer */}
+        <div style={{ flex: 1 }} />
 
         {/* Bottom */}
         <div style={{ padding: 12, borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 10, flexShrink: 0 }}>
