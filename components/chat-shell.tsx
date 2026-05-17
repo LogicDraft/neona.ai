@@ -71,19 +71,12 @@ function useToast() {
 }
 
 const SUGGESTIONS = [
-  { icon: "📅", label: "Create an event", desc: "Add to Google Calendar instantly", text: "Schedule a team meeting tomorrow at 2pm" },
-  { icon: "✅", label: "Create a task", desc: "Add to Google Tasks", text: "Create a task to review project proposal by Friday" },
-  { icon: "⏰", label: "Set a reminder", desc: "Never miss what matters", text: "Remind me to call mom every Sunday at 5pm" },
-  { icon: "🗓", label: "Plan my day", desc: "Organize your schedule", text: "Plan my day tomorrow with meetings, gym, and lunch" },
+  { icon: "📅", label: "Create an event", desc: "Add to Google Calendar instantly", text: "Create an event : " },
+  { icon: "✅", label: "Create a task", desc: "Add to Google Tasks", text: "Create a task : " },
+  { icon: "⏰", label: "Set a reminder", desc: "Never miss what matters", text: "Set a reminder : " },
+  { icon: "🗓", label: "Plan my day", desc: "Organize your schedule", text: "Plan my day : " },
 ];
 
-const RECENT_CHATS = [
-  { label: "Schedule team sync tomorrow", icon: "📅" },
-  { label: "Birthday dinner reminder", icon: "🎂" },
-  { label: "Dentist appointment Friday", icon: "🦷" },
-  { label: "Gym every morning 7am", icon: "💪" },
-  { label: "Project deadline next week", icon: "⚡" },
-];
 
 export default function ChatShell() {
   const { data: session } = useSession();
@@ -101,11 +94,10 @@ export default function ChatShell() {
   const [messages, setMessages] = useState<Message[]>([]);
   const endRef = useRef<HTMLDivElement | null>(null);
   const profileRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const toast = useToast();
   const currentModel = getModelById(currentModelId);
   const isFirstMessage = messages.length === 0;
-
-  const chats = useMemo(() => RECENT_CHATS, []);
 
   useEffect(() => {
     function handler(e: MouseEvent) {
@@ -399,7 +391,19 @@ export default function ChatShell() {
                 <p className="welcome-sub">Turn natural language into Google Calendar events, tasks &amp; reminders.</p>
                 <div className="suggestion-grid">
                   {SUGGESTIONS.map((s) => (
-                    <button key={s.label} type="button" className="suggestion-card" onClick={() => void submit(s.text)}>
+                    <button
+                      key={s.label}
+                      type="button"
+                      className="suggestion-card"
+                      onClick={() => {
+                        setInput(s.text);
+                        // Focus and move cursor to end so user can type after the prefix
+                        setTimeout(() => {
+                          const el = inputRef.current;
+                          if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+                        }, 0);
+                      }}
+                    >
                       <span style={{ fontSize: 22 }}>{s.icon}</span>
                       <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text)", lineHeight: 1.3 }}>{s.label}</span>
                       <span style={{ fontSize: 11, color: "var(--text3)", lineHeight: 1.4 }}>{s.desc}</span>
@@ -437,7 +441,7 @@ export default function ChatShell() {
               </button>
               <span style={{ fontSize: 11, color: "var(--text3)" }}>Enter or ⇧+Enter for newline</span>
             </div>
-            <ChatInput value={input} onChange={setInput} onSubmit={() => void submit()} disabled={loading} />
+            <ChatInput value={input} onChange={setInput} onSubmit={() => void submit()} disabled={loading} inputRef={inputRef} />
             <p style={{ textAlign: "center", fontSize: 11, color: "var(--text3)", marginTop: 6 }}>
               Neona may make mistakes. Always verify events before saving.
             </p>

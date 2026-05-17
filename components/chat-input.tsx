@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 /* ── SpeechRecognition type shim ── */
 interface ISpeechRecognitionResult {
@@ -35,10 +35,17 @@ type ChatInputProps = {
   onChange: (value: string) => void;
   onSubmit: () => void;
   disabled?: boolean;
+  inputRef?: React.RefObject<HTMLTextAreaElement | null>;
 };
 
-export default function ChatInput({ value, onChange, onSubmit, disabled = false }: ChatInputProps) {
+export default function ChatInput({ value, onChange, onSubmit, disabled = false, inputRef }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  // Merge external inputRef with internal textareaRef
+  function setRefs(el: HTMLTextAreaElement | null) {
+    (textareaRef as React.MutableRefObject<HTMLTextAreaElement | null>).current = el;
+    if (inputRef) (inputRef as React.MutableRefObject<HTMLTextAreaElement | null>).current = el;
+  }
   const recognitionRef = useRef<ISpeechRecognition | null>(null);
   const speechSupported = typeof window !== "undefined" && !!getSpeechRecognitionClass();
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
@@ -125,7 +132,7 @@ export default function ChatInput({ value, onChange, onSubmit, disabled = false 
       <div className="flex items-end gap-2">
         {/* Textarea */}
         <textarea
-          ref={textareaRef}
+          ref={setRefs}
           id="chat-message-input"
           value={value}
           onChange={(e) => onChange(e.target.value)}
