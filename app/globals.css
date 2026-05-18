@@ -96,6 +96,43 @@ html, body {
   overflow: hidden;
 }
 
+/* Prevent horizontal overflow globally */
+html, body { overflow-x: hidden; }
+
+/* Responsive container utility (mobile-first) */
+.content-container {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 0 16px;
+}
+@media (min-width: 1024px) {
+  .content-container { max-width: 980px; padding: 0 20px; }
+}
+@media (min-width: 1280px) {
+  .content-container { max-width: 1100px; }
+}
+
+/* Make media responsive */
+img, picture, video, iframe { max-width: 100%; height: auto; display: block; }
+
+/* Improve header layout on small screens */
+@media (max-width: 640px) {
+  .chat-header { padding: 0 8px; height: 52px; }
+  .header-btn { width: 40px; height: 40px; }
+  .model-badge { padding: 8px 12px; font-size: 12px; }
+}
+
+/* Drawer smooth animation */
+.drawer { transition: transform 260ms var(--ease-out); }
+.drawer-backdrop { transition: opacity 200ms ease; }
+
+/* Accessible focus rings for interactive elements */
+button:focus, a:focus { outline: 3px solid rgba(99,179,237,0.18); outline-offset: 2px; }
+
 button { cursor: pointer; border: none; background: none; color: inherit; font-family: inherit; }
 input, textarea { font-family: inherit; }
 * { -webkit-tap-highlight-color: transparent; }

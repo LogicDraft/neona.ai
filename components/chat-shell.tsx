@@ -367,7 +367,7 @@ export default function ChatShell() {
 
         {/* Messages area */}
         <div className="scrollbar-thin" style={{ flex: 1, overflowY: "auto", background: "var(--bg)" }}>
-          <div style={{ maxWidth: 720, width: "100%", margin: "0 auto", display: "flex", flexDirection: "column", gap: 16, padding: "0 16px" }}>
+          <div className="content-container">
 
             {/* Welcome / Neona UI */}
             {isFirstMessage ? (
@@ -392,8 +392,8 @@ export default function ChatShell() {
         </div>
 
         {/* Input area */}
-        <div style={{ background: "var(--bg)", borderTop: "1px solid var(--border)", padding: `10px 12px calc(10px + var(--safe-bottom))` }}>
-          <div style={{ maxWidth: 720, margin: "0 auto" }}>
+          <div style={{ background: "var(--bg)", borderTop: "1px solid var(--border)", padding: `10px 12px calc(10px + var(--safe-bottom))` }}>
+          <div className="content-container" style={{ paddingTop: 10 }}>
             {/* Mobile: model badge */}
             <div className="flex items-center justify-between mb-2 md:hidden">
               <button type="button" className="model-badge" onClick={() => setModelSheetOpen(true)}>
