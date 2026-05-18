@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRef, useState, useEffect, useCallback } from "react";
 import { signIn, useSession } from "next-auth/react";
 import ChatInput from "@/components/chat-input";
+import NeonaAI from "./NeonaAI";
 import type { ParsedItem } from "@/lib/schemas";
 import { clearOfflineData } from "@/lib/cache-utils";
 import { getStoredModelId, getModelById } from "@/lib/model-config";
@@ -368,35 +369,12 @@ export default function ChatShell() {
         <div className="scrollbar-thin" style={{ flex: 1, overflowY: "auto", background: "var(--bg)" }}>
           <div style={{ maxWidth: 720, width: "100%", margin: "0 auto", display: "flex", flexDirection: "column", gap: 16, padding: "0 16px" }}>
 
-            {/* Welcome state */}
-            {isFirstMessage && (
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "48px 0 24px", animation: "fade-up 0.6s ease forwards" }}>
-                <div className="logo-orb" style={{ marginBottom: 24 }} />
-                <h1 className="welcome-title">How can Neona<br />help you today?</h1>
-                <p className="welcome-sub">Turn natural language into Google Calendar events, tasks &amp; reminders.</p>
-                <div className="suggestion-grid">
-                  {SUGGESTIONS.map((s) => (
-                    <button
-                      key={s.label}
-                      type="button"
-                      className="suggestion-card"
-                      onClick={() => {
-                        setInput(s.text);
-                        // Focus and move cursor to end so user can type after the prefix
-                        setTimeout(() => {
-                          const el = inputRef.current;
-                          if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
-                        }, 0);
-                      }}
-                    >
-                      <span style={{ fontSize: 22 }}>{s.icon}</span>
-                      <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text)", lineHeight: 1.3 }}>{s.label}</span>
-                      <span style={{ fontSize: 11, color: "var(--text3)", lineHeight: 1.4 }}>{s.desc}</span>
-                    </button>
-                  ))}
-                </div>
+            {/* Welcome / Neona UI */}
+            {isFirstMessage ? (
+              <div style={{ width: "100%" }}>
+                <NeonaAI />
               </div>
-            )}
+            ) : null}
 
             {/* Messages */}
             <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "16px 0" }}>
