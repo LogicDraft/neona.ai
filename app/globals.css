@@ -87,16 +87,17 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
-  width: 100%; height: 100%;
+  width: 100%; min-height: 100dvh;
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background: var(--bg);
   color: var(--text);
-  overflow: hidden;
+  /* Allow vertical scrolling while preventing horizontal overflow */
+  overflow-y: auto;
 }
 
-/* Prevent horizontal overflow globally */
+/* Prevent horizontal overflow globally; keep vertical scrolling enabled */
 html, body { overflow-x: hidden; }
 
 /* Responsive container utility (mobile-first) */
@@ -143,7 +144,9 @@ input, textarea { font-family: inherit; }
 
 /* ── Scrollbars ── */
 .scrollbar-thin { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.12) transparent; }
-.scrollbar-thin::-webkit-scrollbar { width: 0; }
+.scrollbar-thin::-webkit-scrollbar { width: 8px; }
+.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 99px; }
 
 /* ══════════════════════════════════════════════
    GRADIENT UTILITIES
