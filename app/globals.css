@@ -143,10 +143,23 @@ input, textarea { font-family: inherit; }
 .pt-safe { padding-top:    env(safe-area-inset-top); }
 
 /* ── Scrollbars ── */
-.scrollbar-thin { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.12) transparent; }
+.scrollbar-thin { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.12) transparent; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
 .scrollbar-thin::-webkit-scrollbar { width: 8px; }
 .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
 .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 99px; }
+
+/* Messages area safe spacing & input sticky footer */
+.messages-area { display: flex; flex-direction: column; gap: 16px; padding: 16px 0; }
+
+.chat-footer {
+  position: sticky; bottom: 0; z-index: 35;
+  background: linear-gradient(180deg, rgba(0,0,0,0.00), var(--bg));
+  border-top: 1px solid var(--border);
+  padding-bottom: var(--safe-bottom);
+}
+
+/* Improve tap targets for chat input on mobile */
+.chat-input-bar { min-height: 48px; padding: 10px 12px; }
 
 /* ══════════════════════════════════════════════
    GRADIENT UTILITIES
@@ -337,9 +350,10 @@ input, textarea { font-family: inherit; }
    HEADER
    ══════════════════════════════════════════════ */
 .chat-header {
-  height: 56px;
+  height: calc(56px + var(--safe-top));
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 12px;
+  padding-top: var(--safe-top);
   border-bottom: 1px solid var(--border);
   background: var(--bg);
   position: sticky; top: 0; z-index: 30; flex-shrink: 0;

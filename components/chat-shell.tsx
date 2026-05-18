@@ -366,7 +366,7 @@ export default function ChatShell() {
         </header>
 
         {/* Messages area */}
-        <div className="scrollbar-thin" style={{ flex: 1, overflowY: "auto", background: "var(--bg)" }}>
+        <div className="scrollbar-thin messages-scroll" style={{ flex: 1, overflowY: "auto", background: "var(--bg)" }}>
           <div className="content-container">
 
             {/* Welcome / Neona UI */}
@@ -392,7 +392,7 @@ export default function ChatShell() {
         </div>
 
         {/* Input area */}
-          <div style={{ background: "var(--bg)", borderTop: "1px solid var(--border)", padding: `10px 12px calc(10px + var(--safe-bottom))` }}>
+          <div className="chat-footer">
           <div className="content-container" style={{ paddingTop: 10 }}>
             {/* Mobile: model badge */}
             <div className="flex items-center justify-between mb-2 md:hidden">
