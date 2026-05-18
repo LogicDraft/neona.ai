@@ -365,6 +365,13 @@ export default function NeonaAI() {
     textarea { resize: none; }
     .send-btn:hover { transform: scale(1.08) !important; }
     .send-btn:active { transform: scale(0.95) !important; }
+    @media (max-width: 768px) {
+      .send-btn { width: 44px !important; height: 44px !important; border-radius: 12px !important; }
+      .msg-enter, .suggestion-btn { animation: none !important; }
+      .ai-avatar, .logo-orb { display: none !important; }
+      .msg-bubble-user, .msg-bubble-ai { box-shadow: none !important; }
+      textarea { font-size: 15px !important; min-height: 48px !important; }
+    }
   `;
 
   return (

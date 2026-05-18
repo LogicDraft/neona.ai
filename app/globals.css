@@ -562,3 +562,43 @@ input, textarea { font-family: inherit; }
 .text-neona-base { font-size: 0.9375rem; }
 .text-neona-lg   { font-size: 1.0625rem; }
 .font-display { font-family: var(--font-display); }
+
+/* Mobile performance and accessibility tweaks */
+@media (max-width: 768px) {
+  /* Reduce heavy background blur/gradients to save battery and repaint cost */
+  body::before,
+  body::after {
+    filter: none !important;
+    animation: none !important;
+    background: transparent !important;
+    inset: 0 !important;
+    height: auto !important;
+  }
+
+  /* Simplify shadows and disable large box-shadows */
+  :root {
+    --shadow: none;
+    --shadow2: none;
+    --shadow-glow: none;
+  }
+
+  /* Improve tap targets and touch behavior */
+  button, .nav-item, .suggestion-btn, .send-btn, .icon-btn {
+    min-height: 44px !important;
+    min-width: 44px !important;
+    padding: 10px 12px !important;
+    touch-action: manipulation;
+  }
+
+  /* Avoid forced reflow from fixed large background elements */
+  .logo-orb, .sidebar-logo-orb { display: none !important; }
+
+  /* Smaller base font-size to reduce layout shifts */
+  html, body { font-size: 14px; }
+
+  /* Reduce animations and motion for mobile users */
+  *, *::before, *::after {
+    animation-duration: 200ms !important;
+    transition-duration: 120ms !important;
+  }
+}
