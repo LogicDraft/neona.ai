@@ -571,6 +571,13 @@ input:focus-visible {
   background: var(--text-primary);
 }
 
+.btn-later {
+  margin-top: 12px;
+  color: var(--text-primary);
+  background: transparent;
+  border: 1px solid var(--surface-variant);
+}
+
 .bottom-sheet-overlay {
   position: fixed;
   inset: 0;

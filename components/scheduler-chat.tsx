@@ -69,6 +69,7 @@ function SidebarDrawer({
   onClose,
   onOpenSettings,
   onNewChat,
+  isAuthenticated,
   userName,
   userEmail,
   onSignOut,
@@ -77,6 +78,7 @@ function SidebarDrawer({
   onClose: () => void;
   onOpenSettings: () => void;
   onNewChat: () => void;
+  isAuthenticated: boolean;
   userName: string;
   userEmail?: string | null;
   onSignOut: () => void;
@@ -108,10 +110,10 @@ function SidebarDrawer({
           <div className="profile-pic" aria-hidden="true" />
           <div className="profile-info">
             <span className="profile-name">{userName}</span>
-            <span className="profile-tier">{userEmail || "Google connected"}</span>
+            <span className="profile-tier">{isAuthenticated ? userEmail || "Google connected" : "Connect Google when ready"}</span>
           </div>
-          <button className="footer-settings" aria-label="Sign out" onClick={onSignOut}>
-            <MaterialIcon>logout</MaterialIcon>
+          <button className="footer-settings" aria-label={isAuthenticated ? "Sign out" : "Sign in"} onClick={onSignOut}>
+            <MaterialIcon>{isAuthenticated ? "logout" : "login"}</MaterialIcon>
           </button>
         </div>
       </aside>
@@ -158,7 +160,13 @@ function SettingsSheet({
   );
 }
 
-function AuthModal({ status }: { status: "loading" | "authenticated" | "unauthenticated" }) {
+function AuthModal({
+  status,
+  onLater,
+}: {
+  status: "loading" | "authenticated" | "unauthenticated";
+  onLater: () => void;
+}) {
   if (status === "authenticated") return null;
 
   return (
@@ -174,6 +182,9 @@ function AuthModal({ status }: { status: "loading" | "authenticated" | "unauthen
         <p className="auth-desc">Neona.ai needs access to Google Tasks and Calendar to organize your plans.</p>
         <button className="btn-full btn-google" disabled={status === "loading"} onClick={() => signIn("google")}>
           {status === "loading" ? "Checking session..." : "Sign in with Google"}
+        </button>
+        <button className="btn-full btn-later" disabled={status === "loading"} onClick={onLater}>
+          Maybe later
         </button>
       </div>
     </div>
@@ -211,12 +222,16 @@ function TaskCard({
   item,
   status = "idle",
   error,
+  isAuthenticated,
   onConfirm,
+  onConnect,
 }: {
   item: ParsedItem;
   status?: Message["status"];
   error?: string;
+  isAuthenticated: boolean;
   onConfirm: () => void;
+  onConnect: () => void;
 }) {
   return (
     <div className="task-card">
@@ -237,8 +252,12 @@ function TaskCard({
       {item.clarification ? <p className="task-warning">{item.clarification}</p> : null}
       {error ? <p className="task-warning">{error}</p> : null}
       <div className="task-actions">
-        <button className="primary" disabled={status === "saving" || Boolean(item.clarification)} onClick={onConfirm}>
-          {status === "saving" ? "Adding..." : status === "saved" ? "Added" : `Confirm & Add`}
+        <button
+          className="primary"
+          disabled={status === "saving" || (isAuthenticated && Boolean(item.clarification))}
+          onClick={isAuthenticated ? onConfirm : onConnect}
+        >
+          {!isAuthenticated ? "Connect Google" : status === "saving" ? "Adding..." : status === "saved" ? "Added" : "Confirm & Add"}
         </button>
         <button disabled={status === "saving"}>Edit</button>
       </div>
@@ -249,10 +268,14 @@ function TaskCard({
 function ChatHistory({
   messages,
   isLoading,
+  isAuthenticated,
+  onConnect,
   onConfirm,
 }: {
   messages: Message[];
   isLoading: boolean;
+  isAuthenticated: boolean;
+  onConnect: () => void;
   onConfirm: (messageId: string, item: ParsedItem) => void;
 }) {
   return (
@@ -266,6 +289,8 @@ function ChatHistory({
                 item={message.item}
                 status={message.status}
                 error={message.error}
+                isAuthenticated={isAuthenticated}
+                onConnect={onConnect}
                 onConfirm={() => onConfirm(message.id, message.item as ParsedItem)}
               />
             ) : null}
@@ -329,6 +354,7 @@ export default function SchedulerChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isAuthModalDismissed, setIsAuthModalDismissed] = useState(false);
   const [settings, setSettings] = useState<Record<SettingKey, boolean>>({
     calendar: true,
     tasks: true,
@@ -349,11 +375,37 @@ export default function SchedulerChat() {
     }
   }, []);
 
+  useEffect(() => {
+    if (status === "authenticated") setIsAuthModalDismissed(false);
+  }, [status]);
+
   function resetChat() {
     setMessages([]);
     setInputValue("");
     setIsLoading(false);
     setIsSidebarOpen(false);
+  }
+
+  async function clearConnectedAccountCache() {
+    if ("caches" in window) {
+      const cacheKeys = await caches.keys();
+      await Promise.all(cacheKeys.map((key) => caches.delete(key)));
+    }
+
+    localStorage.clear();
+    sessionStorage.clear();
+
+    if ("serviceWorker" in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.unregister()));
+    }
+  }
+
+  async function handleLogout() {
+    setIsSidebarOpen(false);
+    resetChat();
+    await clearConnectedAccountCache();
+    await signOut({ callbackUrl: "/" });
   }
 
   async function handleSend() {
@@ -393,6 +445,11 @@ export default function SchedulerChat() {
   }
 
   async function confirmSchedule(messageId: string, item: ParsedItem) {
+    if (status !== "authenticated") {
+      signIn("google");
+      return;
+    }
+
     setMessages((current) => current.map((message) => (message.id === messageId ? { ...message, status: "saving", error: undefined } : message)));
 
     try {
@@ -419,7 +476,9 @@ export default function SchedulerChat() {
 
   return (
     <div className="app-container">
-      <AuthModal status={status} />
+      {status !== "authenticated" && !isAuthModalDismissed ? (
+        <AuthModal status={status} onLater={() => setIsAuthModalDismissed(true)} />
+      ) : null}
       <SidebarDrawer
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
@@ -428,9 +487,10 @@ export default function SchedulerChat() {
           setIsSettingsOpen(true);
         }}
         onNewChat={resetChat}
+        isAuthenticated={status === "authenticated"}
         userName={userName}
         userEmail={session?.user?.email}
-        onSignOut={() => signOut()}
+        onSignOut={status === "authenticated" ? handleLogout : () => signIn("google")}
       />
       <SettingsSheet
         isOpen={isSettingsOpen}
@@ -441,9 +501,19 @@ export default function SchedulerChat() {
 
       <Header onOpenSidebar={() => setIsSidebarOpen(true)} onNewChat={resetChat} />
       <main className="main-area" ref={mainRef}>
-        {messages.length === 0 ? <GreetingArea name={userFirstName} /> : <ChatHistory messages={messages} isLoading={isLoading} onConfirm={confirmSchedule} />}
+        {messages.length === 0 ? (
+          <GreetingArea name={userFirstName} />
+        ) : (
+          <ChatHistory
+            messages={messages}
+            isLoading={isLoading}
+            isAuthenticated={status === "authenticated"}
+            onConnect={() => signIn("google")}
+            onConfirm={confirmSchedule}
+          />
+        )}
       </main>
-      <InputPill value={inputValue} disabled={status !== "authenticated" || isLoading} onChange={setInputValue} onSend={handleSend} />
+      <InputPill value={inputValue} disabled={isLoading} onChange={setInputValue} onSend={handleSend} />
     </div>
   );
 }
