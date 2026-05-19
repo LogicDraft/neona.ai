@@ -281,10 +281,10 @@ function AuthModal({
   );
 }
 
-function GreetingArea({ name }: { name: string }) {
+function GreetingArea({ name, justLoggedIn }: { name: string; justLoggedIn?: boolean }) {
   return (
     <section className="greeting-container" aria-label="Greeting">
-      <div className="magic-star" />
+      <img src="/app_icon.png" alt="Neona App Icon" className={`app-icon-greeting ${justLoggedIn ? "login-bounce" : "real-icon"}`} />
       <h1 className="greeting-text">
         Hi {name}, let&apos;s get
         <br />
@@ -475,6 +475,8 @@ function InputPill({
   onKindChange,
   onChip,
   inputRef,
+  isListening,
+  onMicClick,
 }: {
   value: string;
   disabled: boolean;
@@ -484,6 +486,8 @@ function InputPill({
   onKindChange: (kind: PreferredKind) => void;
   onChip: (text: string) => void;
   inputRef?: React.RefObject<HTMLInputElement | null>;
+  isListening?: boolean;
+  onMicClick?: () => void;
 }) {
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === "Enter") onSend();
@@ -528,7 +532,7 @@ function InputPill({
               <MaterialIcon>send</MaterialIcon>
             </button>
           ) : (
-            <button className="icon-btn mic-btn" aria-label="Voice input" disabled={disabled}>
+            <button className={`icon-btn mic-btn ${isListening ? "listening" : ""}`} aria-label="Voice input" disabled={disabled} onClick={onMicClick}>
               <MaterialIcon>mic</MaterialIcon>
             </button>
           )}
@@ -554,6 +558,8 @@ export default function SchedulerChat() {
     advanced: true,
   });
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const mainRef = useRef<HTMLElement | null>(null);
   const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC", []);
@@ -643,6 +649,49 @@ export default function SchedulerChat() {
     sessionStorage.clear();
     resetChat();
     alert("Chat history cleared.");
+  }
+
+  function toggleListening() {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Your browser does not support voice input.");
+      return;
+    }
+
+    if (!recognitionRef.current) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = "en-US";
+
+      let finalTranscript = "";
+
+      recognition.onresult = (event: any) => {
+        let interimTranscript = "";
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          } else {
+            interimTranscript += event.results[i][0].transcript;
+          }
+        }
+        setInputValue(finalTranscript + interimTranscript);
+      };
+
+      recognition.onerror = () => setIsListening(false);
+      recognition.onend = () => setIsListening(false);
+      recognitionRef.current = recognition;
+    }
+
+    setInputValue("");
+    recognitionRef.current.start();
+    setIsListening(true);
   }
 
   async function handleLogout() {
@@ -771,7 +820,7 @@ export default function SchedulerChat() {
       <Header onOpenSidebar={() => setIsSidebarOpen(true)} onNewChat={resetChat} />
       <main className="main-area" ref={mainRef}>
         {messages.length === 0 ? (
-          <GreetingArea name={userFirstName} />
+          <GreetingArea name={userFirstName} justLoggedIn={status === "authenticated" && !isLoaded} />
         ) : (
           <ChatHistory
             messages={messages}
@@ -791,6 +840,8 @@ export default function SchedulerChat() {
         onChip={applyQuickChip}
         onSend={handleSend}
         inputRef={inputRef}
+        isListening={isListening}
+        onMicClick={toggleListening}
       />
     </div>
   );

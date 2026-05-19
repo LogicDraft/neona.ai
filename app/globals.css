@@ -168,12 +168,42 @@ select:focus-visible {
   transition: opacity 300ms ease;
 }
 
-.magic-star {
-  width: 48px;
-  height: 48px;
-  background: var(--star-grad);
-  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-  animation: pulse 3s infinite ease-in-out;
+.app-icon-greeting {
+  width: 56px;
+  height: 56px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23a8c7fa'%3E%3Cpath d='M12 2L22 12 12 22 2 12 12 2z'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  margin-bottom: 24px;
+  opacity: 0;
+  animation: fadeIn 500ms ease-out forwards;
+}
+
+.app-icon-greeting.real-icon {
+  background-image: none;
+  object-fit: contain;
+}
+
+.login-bounce {
+  animation: loginBounce 800ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes loginBounce {
+  0% { transform: scale(1); opacity: 1; }
+  30% { transform: scale(1.4) rotate(-5deg); filter: drop-shadow(0 0 16px rgba(168, 199, 250, 0.6)); }
+  60% { transform: scale(0.9) rotate(3deg); }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+.icon-btn.mic-btn.listening {
+  color: #ff5252;
+  animation: micPulse 1.5s infinite ease-in-out;
+}
+
+@keyframes micPulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 82, 82, 0.4); }
+  50% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(255, 82, 82, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 82, 82, 0); }
 }
 
 .greeting-text {

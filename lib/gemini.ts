@@ -79,7 +79,10 @@ export async function parseScheduleText(options: {
       "gemini-2.5-pro",
       "gemini-2.0-flash",
       "gemini-2.0-flash-lite",
+      "gemini-2.0-flash-lite",
+      "gemini-1.5-flash-latest",
       "gemini-1.5-flash",
+      "gemini-pro",
     ]),
   );
 
@@ -100,7 +103,12 @@ export async function parseScheduleText(options: {
       const json = JSON.parse(stripCodeFences(response));
       return parsedItemSchema.parse(json);
     } catch (err: any) {
-      console.error(`Model ${modelName} failed with error:`, err);
+      if (err instanceof SyntaxError || err.name === "ZodError") {
+        console.error(`Model ${modelName} returned invalid JSON/schema:`, err);
+        throw new Error(`Parsing failed: ${err.message}`);
+      }
+      
+      console.error(`Model ${modelName} failed with API error:`, err);
       lastError = err;
 
       // If it's the last model, try listing models to provide a helpful error message
