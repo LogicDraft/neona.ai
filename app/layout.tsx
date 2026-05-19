@@ -8,8 +8,8 @@ export const metadata: Metadata = {
   description: "Schedule events, tasks, and reminders using natural language with Neona.ai.",
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/icon.svg",
-    apple: "/icon.svg",
+    icon: "/app_icon.png",
+    apple: "/app_icon.png",
   },
 };
 
