@@ -1,1426 +1,709 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<title>Neona.ai — Turn words into events</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
-<style>
-/* ============ CSS VARIABLES ============ */
-:root {
-  --bg: #000000;
-  --bg2: #0a0a0a;
-  --surface: #1c1c1e;
-  --surface2: #2c2c2e;
-  --surface3: #3a3a3c;
-  --border: rgba(255,255,255,0.08);
-  --text: #ffffff;
-  --text2: rgba(255,255,255,0.6);
-  --text3: rgba(255,255,255,0.35);
-  --accent: #a78bfa;
-  --accent2: #60a5fa;
-  --accent3: #34d399;
-  --grad: linear-gradient(135deg, #a78bfa, #60a5fa, #34d399);
-  --grad2: linear-gradient(135deg, rgba(167,139,250,0.15), rgba(96,165,250,0.1));
-  --shadow: 0 8px 32px rgba(0,0,0,0.6);
-  --shadow2: 0 2px 12px rgba(0,0,0,0.4);
-  --radius: 18px;
-  --radius2: 14px;
-  --radius3: 10px;
-  --input-bg: #1c1c1e;
-  --sidebar-w: 300px;
-  --font-display: 'Syne', sans-serif;
-  --font-body: 'DM Sans', sans-serif;
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --safe-top: env(safe-area-inset-top, 0px);
-}
-[data-theme="light"] {
-  --bg: #f5f5f7;
-  --bg2: #ffffff;
-  --surface: #ffffff;
-  --surface2: #f5f5f7;
-  --surface3: #e8e8ed;
-  --border: rgba(0,0,0,0.08);
-  --text: #1c1c1e;
-  --text2: rgba(0,0,0,0.55);
-  --text3: rgba(0,0,0,0.3);
-  --shadow: 0 8px 32px rgba(0,0,0,0.1);
-  --shadow2: 0 2px 12px rgba(0,0,0,0.08);
-  --input-bg: #ffffff;
-}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neona.ai</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <style>
+        /* CSS Variables matching the reference UI */
+        :root {
+            --bg-base: #000000;
+            --bg-gradient: radial-gradient(circle at center 120%, #17233b 0%, #000000 60%);
+            --surface: #131314;
+            --surface-variant: #1e1f22;
+            --surface-hover: #282a2d;
+            --text-primary: #e3e3e3;
+            --text-secondary: #c4c7c5;
+            --text-muted: #8e918f;
+            --accent-blue: #a8c7fa;
+            --accent-btn: #3a3b3e;
+            --star-grad: linear-gradient(135deg, #4285f4, #9b72cb, #d96570, #fbbc04);
+            /* System font to match the native Android/Google Sans look from the screenshots */
+            --font-main: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
 
-/* ============ RESET ============ */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { height: 100%; overflow: hidden; }
-body {
-  font-family: var(--font-body);
-  background: var(--bg);
-  color: var(--text);
-  height: 100%;
-  overflow: hidden;
-  -webkit-font-smoothing: antialiased;
-  transition: background 0.3s, color 0.3s;
-}
-button { cursor: pointer; border: none; background: none; color: inherit; font-family: inherit; }
-input, textarea { font-family: inherit; }
-* { -webkit-tap-highlight-color: transparent; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: var(--font-main);
+            -webkit-tap-highlight-color: transparent;
+        }
 
-/* ============ APP SHELL ============ */
-#app {
-  display: flex;
-  height: 100%;
-  position: relative;
-  overflow: hidden;
-}
+        body, html {
+            height: 100%;
+            width: 100%;
+            background-color: var(--bg-base);
+            background-image: var(--bg-gradient);
+            background-attachment: fixed;
+            color: var(--text-primary);
+            overflow: hidden;
+            overscroll-behavior-y: none;
+        }
 
-/* ============ SIDEBAR OVERLAY ============ */
-#sidebar-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.6);
-  backdrop-filter: blur(4px);
-  z-index: 40;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s;
-}
-#sidebar-overlay.active { opacity: 1; pointer-events: all; }
+        /* --- Layout --- */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            position: relative;
+        }
 
-/* ============ SIDEBAR ============ */
-#sidebar {
-  position: fixed;
-  left: 0; top: 0; bottom: 0;
-  width: var(--sidebar-w);
-  background: var(--surface);
-  border-right: 1px solid var(--border);
-  z-index: 50;
-  display: flex;
-  flex-direction: column;
-  transform: translateX(-100%);
-  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-  padding-top: var(--safe-top);
-}
-#sidebar.open { transform: translateX(0); }
-@media (min-width: 768px) {
-  #sidebar {
-    position: relative;
-    transform: translateX(0) !important;
-    flex-shrink: 0;
-  }
-  #sidebar-overlay { display: none; }
-}
+        /* --- Header --- */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            z-index: 10;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
 
-.sidebar-header {
-  padding: 20px 16px 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  border-bottom: 1px solid var(--border);
-}
-.sidebar-logo-orb {
-  width: 36px; height: 36px;
-  border-radius: 50%;
-  background: var(--grad);
-  position: relative;
-  flex-shrink: 0;
-  animation: pulse-orb 3s ease-in-out infinite;
-}
-.sidebar-logo-orb::after {
-  content: '';
-  position: absolute;
-  inset: -3px;
-  border-radius: 50%;
-  background: var(--grad);
-  opacity: 0.3;
-  animation: pulse-orb 3s ease-in-out infinite 0.5s;
-  filter: blur(4px);
-}
-@keyframes pulse-orb {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.05); opacity: 0.85; }
-}
-.sidebar-logo-text h1 { font-family: var(--font-display); font-size: 16px; font-weight: 700; }
-.sidebar-logo-text p { font-size: 11px; color: var(--text3); font-weight: 400; }
+        .icon-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
 
-.sidebar-new-chat {
-  margin: 12px 12px 8px;
-  padding: 11px 16px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius2);
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text);
-  text-align: left;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: background 0.2s, transform 0.15s;
-}
-.sidebar-new-chat:hover { background: var(--surface3); transform: scale(0.99); }
-.sidebar-new-chat:active { transform: scale(0.97); }
+        .icon-btn:active {
+            background: rgba(255, 255, 255, 0.1);
+        }
 
-.sidebar-search {
-  margin: 0 12px 12px;
-  position: relative;
-}
-.sidebar-search input {
-  width: 100%;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius2);
-  padding: 10px 14px 10px 36px;
-  font-size: 14px;
-  color: var(--text);
-  outline: none;
-  transition: border-color 0.2s;
-}
-.sidebar-search input:focus { border-color: rgba(167,139,250,0.4); }
-.sidebar-search input::placeholder { color: var(--text3); }
-.sidebar-search-icon {
-  position: absolute;
-  left: 12px; top: 50%;
-  transform: translateY(-50%);
-  color: var(--text3);
-  font-size: 14px;
-}
+        .model-selector {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
 
-.sidebar-section-label {
-  padding: 4px 16px 6px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text3);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
+        /* --- Main Chat Area --- */
+        main {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            padding: 0 16px;
+            scroll-behavior: smooth;
+        }
 
-.sidebar-history { flex: 1; overflow-y: auto; padding: 0 8px; }
-.sidebar-history::-webkit-scrollbar { width: 0; }
-.chat-item {
-  padding: 10px 12px;
-  border-radius: var(--radius3);
-  font-size: 13.5px;
-  color: var(--text2);
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 2px;
-}
-.chat-item:hover { background: var(--surface2); color: var(--text); }
-.chat-item.active { background: var(--surface2); color: var(--text); }
-.chat-item-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--surface3); flex-shrink: 0; }
+        main::-webkit-scrollbar { display: none; }
 
-.sidebar-bottom {
-  padding: 12px;
-  border-top: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
+        /* Initial Greeting */
+        .greeting-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            transition: opacity 0.3s;
+        }
 
-.google-connect-card {
-  background: linear-gradient(135deg, rgba(96,165,250,0.12), rgba(52,211,153,0.08));
-  border: 1px solid rgba(96,165,250,0.2);
-  border-radius: var(--radius2);
-  padding: 14px;
-  animation: fade-in 0.5s ease;
-}
-.google-connect-card p { font-size: 12.5px; font-weight: 600; margin-bottom: 4px; }
-.google-connect-card span { font-size: 11px; color: var(--text3); display: block; margin-bottom: 10px; }
-.google-btn {
-  width: 100%;
-  background: #fff;
-  color: #1c1c1e;
-  border-radius: 10px;
-  padding: 9px;
-  font-size: 13px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: opacity 0.2s, transform 0.15s;
-}
-.google-btn:hover { opacity: 0.9; transform: scale(0.99); }
-.google-btn:active { transform: scale(0.97); }
+        .magic-star {
+            width: 48px;
+            height: 48px;
+            background: var(--star-grad);
+            clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+            animation: pulse 3s infinite ease-in-out;
+        }
 
-.connected-account {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius2);
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.connected-account:hover { background: var(--surface3); }
-.avatar {
-  width: 32px; height: 32px;
-  border-radius: 50%;
-  background: var(--grad);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-.avatar-info { flex: 1; min-width: 0; }
-.avatar-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.avatar-email { font-size: 11px; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        @keyframes pulse {
+            0% { transform: scale(1); filter: drop-shadow(0 0 10px rgba(155,114,203,0.5)); }
+            50% { transform: scale(1.1); filter: drop-shadow(0 0 25px rgba(66,133,244,0.8)); }
+            100% { transform: scale(1); filter: drop-shadow(0 0 10px rgba(155,114,203,0.5)); }
+        }
 
-/* ============ MAIN CONTENT ============ */
-#main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  position: relative;
-  background: var(--bg);
-}
+        .greeting-text {
+            font-size: 28px;
+            font-weight: 400;
+            text-align: center;
+            color: var(--text-primary);
+        }
 
-/* ============ HEADER ============ */
-#header {
-  height: 56px;
-  padding: calc(var(--safe-top)) 12px 0;
-  display: flex;
-  align-items: flex-end;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border);
-  position: relative;
-  z-index: 10;
-  background: var(--bg);
-  gap: 8px;
-}
-.header-btn {
-  width: 38px; height: 38px;
-  border-radius: 50%;
-  background: var(--surface2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  transition: background 0.2s, transform 0.15s;
-  flex-shrink: 0;
-}
-.header-btn:hover { background: var(--surface3); transform: scale(1.05); }
-.header-btn:active { transform: scale(0.95); }
-.header-title {
-  flex: 1;
-  text-align: center;
-  font-family: var(--font-display);
-  font-size: 15px;
-  font-weight: 600;
-}
+        /* Chat History */
+        .chat-history {
+            display: none; /* Shown after first message */
+            flex-direction: column;
+            gap: 24px;
+            padding-bottom: 24px;
+            padding-top: 20px;
+        }
 
-/* ============ SCREENS ============ */
-.screen { display: none; flex: 1; flex-direction: column; overflow: hidden; }
-.screen.active { display: flex; }
+        .message {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            animation: slideUp 0.3s ease-out forwards;
+        }
 
-/* ============ HOME SCREEN ============ */
-#home-screen {
-  justify-content: space-between;
-}
-.chat-area {
-  flex: 1;
-  overflow-y: auto;
-  padding: 0 16px;
-  display: flex;
-  flex-direction: column;
-}
-.chat-area::-webkit-scrollbar { width: 0; }
+        .message.user { align-items: flex-end; }
+        .message.ai { align-items: flex-start; }
 
-.welcome-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 32px 0 16px;
-  animation: fade-up 0.6s ease forwards;
-}
-@keyframes fade-up {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
+        .msg-bubble {
+            padding: 14px 18px;
+            border-radius: 20px;
+            font-size: 16px;
+            line-height: 1.5;
+            max-width: 85%;
+        }
 
-.logo-orb {
-  width: 72px; height: 72px;
-  border-radius: 50%;
-  background: var(--grad);
-  position: relative;
-  margin-bottom: 24px;
-  animation: pulse-orb 3s ease-in-out infinite;
-}
-.logo-orb::before {
-  content: '';
-  position: absolute;
-  inset: -8px;
-  border-radius: 50%;
-  background: var(--grad);
-  opacity: 0.15;
-  filter: blur(12px);
-  animation: pulse-orb 3s ease-in-out infinite 0.3s;
-}
-.logo-orb::after {
-  content: '';
-  position: absolute;
-  inset: -18px;
-  border-radius: 50%;
-  background: var(--grad);
-  opacity: 0.07;
-  filter: blur(20px);
-  animation: pulse-orb 3s ease-in-out infinite 0.6s;
-}
+        .message.user .msg-bubble {
+            background-color: var(--surface-variant);
+            color: var(--text-primary);
+            border-bottom-right-radius: 4px;
+        }
 
-.welcome-title {
-  font-family: var(--font-display);
-  font-size: clamp(22px, 5vw, 32px);
-  font-weight: 800;
-  text-align: center;
-  margin-bottom: 8px;
-  background: var(--grad);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-.welcome-sub {
-  font-size: 14px;
-  color: var(--text3);
-  text-align: center;
-  margin-bottom: 32px;
-  max-width: 260px;
-  line-height: 1.5;
-}
+        .message.ai .msg-bubble {
+            background-color: transparent;
+            color: var(--text-primary);
+            padding: 0;
+        }
 
-.suggestion-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  width: 100%;
-  max-width: 360px;
-}
-.suggestion-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px 14px;
-  text-align: left;
-  transition: border-color 0.2s, background 0.2s, transform 0.15s;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  animation: slide-up 0.5s ease forwards;
-  opacity: 0;
-}
-.suggestion-card:nth-child(1) { animation-delay: 0.1s; }
-.suggestion-card:nth-child(2) { animation-delay: 0.15s; }
-.suggestion-card:nth-child(3) { animation-delay: 0.2s; }
-.suggestion-card:nth-child(4) { animation-delay: 0.25s; }
-@keyframes slide-up {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.suggestion-card:hover {
-  border-color: rgba(167,139,250,0.4);
-  background: var(--surface2);
-  transform: scale(1.02);
-}
-.suggestion-card:active { transform: scale(0.98); }
-.suggestion-icon { font-size: 22px; }
-.suggestion-label { font-size: 12.5px; font-weight: 600; color: var(--text); line-height: 1.3; }
-.suggestion-desc { font-size: 11px; color: var(--text3); line-height: 1.4; }
+        /* Task Card */
+        .task-card {
+            background: var(--surface-variant);
+            border-radius: 16px;
+            padding: 16px;
+            margin-top: 12px;
+            border: 1px solid rgba(255,255,255,0.05);
+            width: 100%;
+        }
+        
+        .task-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: var(--accent-blue);
+            margin-bottom: 12px;
+        }
 
-/* ============ CHAT MESSAGES ============ */
-.messages-list { display: flex; flex-direction: column; gap: 16px; padding: 16px 0; }
-.message-row { display: flex; gap: 10px; animation: fade-in 0.3s ease; }
-.message-row.user { flex-direction: row-reverse; }
-.message-avatar {
-  width: 30px; height: 30px;
-  border-radius: 50%;
-  background: var(--grad);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  flex-shrink: 0;
-  align-self: flex-end;
-}
-.message-avatar.user-av {
-  background: var(--surface3);
-  font-size: 11px;
-}
-.message-bubble {
-  max-width: 78%;
-  padding: 12px 16px;
-  border-radius: 20px;
-  font-size: 14px;
-  line-height: 1.55;
-}
-.message-bubble.assistant {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-bottom-left-radius: 6px;
-  color: var(--text);
-}
-.message-bubble.user {
-  background: var(--grad);
-  color: white;
-  border-bottom-right-radius: 6px;
-}
+        .task-title {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
 
-.event-preview-card {
-  margin-top: 12px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-left: 3px solid var(--accent);
-  border-radius: var(--radius2);
-  padding: 14px;
-  animation: slide-up 0.4s ease;
-}
-.event-preview-card .ev-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
-.event-preview-card .ev-row {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 12.5px;
-  color: var(--text2);
-  margin-bottom: 4px;
-}
-.ev-actions { display: flex; gap: 8px; margin-top: 12px; }
-.ev-btn {
-  flex: 1;
-  padding: 9px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  text-align: center;
-  transition: opacity 0.2s, transform 0.15s;
-}
-.ev-btn:active { transform: scale(0.97); }
-.ev-btn.primary {
-  background: var(--grad);
-  color: white;
-}
-.ev-btn.secondary {
-  background: var(--surface3);
-  color: var(--text);
-}
+        .task-time {
+            font-size: 14px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 16px;
+        }
 
-/* ============ INPUT AREA ============ */
-.input-area {
-  padding: 10px 12px calc(10px + var(--safe-bottom));
-  background: var(--bg);
-  border-top: 1px solid var(--border);
-}
-.input-bar {
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 26px;
-  padding: 8px 8px 8px 16px;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-.input-bar:focus-within {
-  border-color: rgba(167,139,250,0.4);
-  box-shadow: 0 0 0 3px rgba(167,139,250,0.08);
-}
-.input-bar textarea {
-  flex: 1;
-  background: transparent;
-  border: none;
-  outline: none;
-  color: var(--text);
-  font-size: 15px;
-  resize: none;
-  max-height: 120px;
-  line-height: 1.5;
-  padding: 3px 0;
-}
-.input-bar textarea::placeholder { color: var(--text3); }
-.input-btn {
-  width: 36px; height: 36px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  color: var(--text3);
-  transition: color 0.2s, background 0.2s, transform 0.15s;
-  flex-shrink: 0;
-}
-.input-btn:hover { color: var(--text2); background: var(--surface2); }
-.input-btn:active { transform: scale(0.9); }
-.send-btn {
-  width: 36px; height: 36px;
-  border-radius: 50%;
-  background: var(--grad);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 15px;
-  flex-shrink: 0;
-  transition: opacity 0.2s, transform 0.15s;
-  color: white;
-}
-.send-btn:hover { opacity: 0.85; }
-.send-btn:active { transform: scale(0.9); }
-.send-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+        .task-actions button {
+            background: var(--surface-hover);
+            border: none;
+            color: var(--text-primary);
+            padding: 10px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            margin-right: 8px;
+        }
+        .task-actions button.primary {
+            background: var(--text-primary);
+            color: #000;
+        }
 
-/* ============ SETTINGS SCREEN ============ */
-#settings-screen { overflow-y: auto; background: var(--bg2); }
-#settings-screen::-webkit-scrollbar { width: 0; }
-.settings-content { padding: 20px 16px; max-width: 600px; margin: 0 auto; }
-.settings-header { margin-bottom: 28px; }
-.settings-header h2 { font-family: var(--font-display); font-size: 26px; font-weight: 800; }
+        /* --- Bottom Input Area --- */
+        .input-container {
+            padding: 12px 16px 24px 16px;
+            background: linear-gradient(to top, var(--bg-base) 80%, transparent);
+        }
 
-.settings-group {
-  margin-bottom: 28px;
-  animation: fade-in 0.4s ease;
-}
-.settings-group-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text3);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: 8px;
-  padding: 0 4px;
-}
-.settings-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-}
-.settings-item {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 15px 16px;
-  cursor: pointer;
-  transition: background 0.15s;
-  border-bottom: 1px solid var(--border);
-  position: relative;
-}
-.settings-item:last-child { border-bottom: none; }
-.settings-item:hover { background: var(--surface2); }
-.settings-item:active { background: var(--surface3); }
-.settings-item-icon {
-  width: 32px; height: 32px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  flex-shrink: 0;
-}
-.settings-item-info { flex: 1; min-width: 0; }
-.settings-item-label { font-size: 15px; font-weight: 500; }
-.settings-item-value { font-size: 12.5px; color: var(--text3); margin-top: 1px; }
-.settings-item-right { display: flex; align-items: center; gap: 8px; }
-.settings-arrow { color: var(--text3); font-size: 14px; }
-.settings-badge {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 20px;
-  background: rgba(167,139,250,0.15);
-  color: var(--accent);
-}
-.toggle {
-  width: 44px; height: 26px;
-  border-radius: 13px;
-  background: var(--surface3);
-  position: relative;
-  transition: background 0.25s;
-  cursor: pointer;
-}
-.toggle.on { background: var(--accent3); }
-.toggle::after {
-  content: '';
-  position: absolute;
-  width: 20px; height: 20px;
-  border-radius: 50%;
-  background: white;
-  top: 3px; left: 3px;
-  transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-}
-.toggle.on::after { transform: translateX(18px); }
+        .input-pill {
+            background: var(--surface-variant);
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            padding: 6px 6px 6px 12px;
+            min-height: 56px;
+        }
 
-.accent-colors {
-  display: flex;
-  gap: 10px;
-  margin-top: 10px;
-}
-.accent-swatch {
-  width: 28px; height: 28px;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: transform 0.15s;
-  position: relative;
-}
-.accent-swatch:hover { transform: scale(1.15); }
-.accent-swatch.active::after {
-  content: '✓';
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  color: white;
-  font-weight: 700;
-}
+        .input-pill .icon-btn {
+            color: var(--text-secondary);
+        }
 
-.danger-item .settings-item-label { color: #ff453a; }
-.settings-version { text-align: center; font-size: 12px; color: var(--text3); margin-top: 20px; }
+        .input-pill input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-size: 16px;
+            padding: 0 12px;
+            outline: none;
+        }
+        .input-pill input::placeholder {
+            color: var(--text-muted);
+        }
 
-/* ============ TOAST ============ */
-.toast {
-  position: fixed;
-  bottom: calc(90px + var(--safe-bottom));
-  left: 50%;
-  transform: translateX(-50%) translateY(20px);
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  color: var(--text);
-  padding: 12px 20px;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 500;
-  opacity: 0;
-  transition: opacity 0.3s, transform 0.3s;
-  z-index: 100;
-  white-space: nowrap;
-  box-shadow: var(--shadow);
-  pointer-events: none;
-}
-.toast.show {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
-}
+        .action-cluster {
+            display: flex;
+            align-items: center;
+            background: var(--surface-hover);
+            border-radius: 24px;
+            padding: 2px;
+        }
 
-/* ============ TYPING INDICATOR ============ */
-.typing-indicator {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 12px 16px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  border-bottom-left-radius: 6px;
-  width: fit-content;
-}
-.typing-dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: var(--text3);
-  animation: typing 1.2s ease-in-out infinite;
-}
-.typing-dot:nth-child(2) { animation-delay: 0.2s; }
-.typing-dot:nth-child(3) { animation-delay: 0.4s; }
-@keyframes typing {
-  0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
-  40% { transform: scale(1.15); opacity: 1; }
-}
+        .action-cluster .icon-btn {
+            width: 36px; height: 36px;
+        }
+        
+        .action-cluster .mic-btn {
+            background: #2a2b30;
+            color: var(--accent-blue);
+        }
 
-/* ============ MOBILE ONLY ADJUSTMENTS ============ */
-@media (min-width: 768px) {
-  .suggestion-grid { max-width: 440px; }
-  #header { height: 60px; padding: 0 20px; }
-  .chat-area { padding: 0 24px; }
-  .input-area { padding: 12px 20px; }
-  .messages-list { max-width: 680px; width: 100%; margin: 0 auto; }
-  .welcome-container { padding: 48px 0 20px; }
-}
+        /* --- Sidebar Drawer --- */
+        .sidebar-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            opacity: 0; visibility: hidden;
+            transition: 0.3s;
+            z-index: 99;
+        }
+        
+        .sidebar {
+            position: fixed; top: 0; left: -320px; bottom: 0;
+            width: 300px;
+            background: var(--surface);
+            z-index: 100;
+            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+        }
 
-/* ============ GESTURE HINT ============ */
-.swipe-hint {
-  position: fixed;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 8px 16px;
-  font-size: 12px;
-  color: var(--text3);
-  opacity: 0;
-  animation: hint-fade 4s ease 1s forwards;
-  pointer-events: none;
-  z-index: 200;
-}
-@keyframes hint-fade {
-  0% { opacity: 0; }
-  15% { opacity: 1; }
-  80% { opacity: 1; }
-  100% { opacity: 0; }
-}
+        .sidebar.open { transform: translateX(320px); }
+        .sidebar-overlay.show { opacity: 1; visibility: visible; }
 
-/* ============ CONNECTED STATUS ============ */
-.status-dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.status-dot.green { background: #34d399; box-shadow: 0 0 6px #34d399; }
-.status-dot.gray { background: var(--surface3); }
-</style>
+        .sidebar-header {
+            padding: 16px;
+            font-size: 20px;
+            font-weight: 500;
+        }
+
+        .sidebar-content {
+            flex: 1;
+            padding: 12px;
+            overflow-y: auto;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 14px 16px;
+            border-radius: 30px;
+            color: var(--text-secondary);
+            font-size: 15px;
+        }
+        .menu-item:active { background: var(--surface-variant); }
+        
+        .menu-item.active {
+            background: var(--surface-variant);
+            color: var(--text-primary);
+        }
+
+        .sidebar-footer {
+            padding: 16px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .profile-pic {
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            background: var(--star-grad);
+        }
+        .profile-info {
+            display: flex; flex-direction: column;
+        }
+        .profile-name { font-size: 14px; font-weight: 500; }
+        .profile-tier { font-size: 11px; color: var(--text-muted); }
+
+        /* --- Modals & Bottom Sheets --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(4px);
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0; visibility: hidden;
+            transition: 0.3s;
+        }
+        .modal-overlay.show { opacity: 1; visibility: visible; }
+
+        .auth-card {
+            background: var(--surface);
+            width: 90%;
+            max-width: 400px;
+            border-radius: 28px;
+            padding: 24px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.08);
+            transform: scale(0.95);
+            transition: 0.3s;
+        }
+        .modal-overlay.show .auth-card { transform: scale(1); }
+
+        .google-icon { width: 48px; margin-bottom: 16px; }
+        
+        .auth-title { font-size: 22px; margin-bottom: 8px; }
+        .auth-desc { font-size: 14px; color: var(--text-muted); margin-bottom: 24px; line-height: 1.4; }
+
+        .btn-full {
+            width: 100%;
+            padding: 14px;
+            border-radius: 100px;
+            border: none;
+            font-size: 15px;
+            font-weight: 500;
+            margin-bottom: 12px;
+        }
+        .btn-google {
+            background: var(--text-primary);
+            color: #000;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-later {
+            background: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--surface-variant);
+        }
+
+        /* Bottom Sheet (Settings) */
+        .bottom-sheet-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 150;
+            opacity: 0; visibility: hidden; transition: 0.3s;
+        }
+        .bottom-sheet {
+            position: fixed; left: 0; right: 0; bottom: 0;
+            background: var(--surface);
+            border-radius: 24px 24px 0 0;
+            padding: 8px 16px 24px 16px;
+            z-index: 151;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .bottom-sheet-overlay.show { opacity: 1; visibility: visible; }
+        .bottom-sheet-overlay.show + .bottom-sheet { transform: translateY(0); }
+        
+        .sheet-handle {
+            width: 32px; height: 4px;
+            background: var(--surface-variant);
+            border-radius: 4px;
+            margin: 8px auto 20px auto;
+        }
+
+        .settings-list { display: flex; flex-direction: column; gap: 20px; padding: 10px 0;}
+        .setting-item {
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .setting-info h4 { font-size: 16px; font-weight: 400; }
+        .setting-info p { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+        
+        /* Toggle Switch */
+        .toggle {
+            position: relative; width: 44px; height: 24px;
+            background: var(--surface-variant); border-radius: 12px;
+        }
+        .toggle.active { background: var(--accent-blue); }
+        .toggle::after {
+            content: ''; position: absolute; top: 2px; left: 2px;
+            width: 20px; height: 20px; background: #fff; border-radius: 50%;
+            transition: 0.2s;
+        }
+        .toggle.active::after { transform: translateX(20px); background: #000;}
+
+        /* Animations */
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .typing-dots { display: flex; gap: 4px; padding: 10px 0;}
+        .typing-dots div {
+            width: 6px; height: 6px; background: var(--text-secondary); border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+        .typing-dots div:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dots div:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+
+    </style>
 </head>
 <body>
-<div id="app">
-  <!-- Sidebar Overlay -->
-  <div id="sidebar-overlay" onclick="closeSidebar()"></div>
 
-  <!-- Sidebar -->
-  <aside id="sidebar">
-    <div class="sidebar-header">
-      <div class="sidebar-logo-orb"></div>
-      <div class="sidebar-logo-text">
-        <h1>Neona.ai</h1>
-        <p>Turn words into events</p>
-      </div>
-    </div>
-
-    <button class="sidebar-new-chat" onclick="newChat()">
-      <span>✏️</span>
-      <span>New Chat</span>
-    </button>
-
-    <div class="sidebar-search">
-      <span class="sidebar-search-icon">🔍</span>
-      <input type="text" placeholder="Search chats…" />
-    </div>
-
-    <div class="sidebar-section-label">Recent</div>
-    <div class="sidebar-history">
-      <div class="chat-item active" onclick="loadChat(0)">
-        <div class="chat-item-dot"></div>
-        <span>Schedule team sync tomorrow</span>
-      </div>
-      <div class="chat-item" onclick="loadChat(1)">
-        <div class="chat-item-dot"></div>
-        <span>Birthday dinner reminder</span>
-      </div>
-      <div class="chat-item" onclick="loadChat(2)">
-        <div class="chat-item-dot"></div>
-        <span>Dentist appointment Friday</span>
-      </div>
-      <div class="chat-item" onclick="loadChat(3)">
-        <div class="chat-item-dot"></div>
-        <span>Gym every morning 7am</span>
-      </div>
-      <div class="chat-item" onclick="loadChat(4)">
-        <div class="chat-item-dot"></div>
-        <span>Project deadline next week</span>
-      </div>
-      <div class="sidebar-section-label" style="margin-top: 10px;">Last 7 Days</div>
-      <div class="chat-item" onclick="loadChat(5)">
-        <div class="chat-item-dot"></div>
-        <span>Quarterly review prep</span>
-      </div>
-      <div class="chat-item" onclick="loadChat(6)">
-        <div class="chat-item-dot"></div>
-        <span>Call with Sarah Mon 3pm</span>
-      </div>
-    </div>
-
-    <div class="sidebar-bottom">
-      <div id="google-card" class="google-connect-card">
-        <p>🗓 Google Calendar</p>
-        <span>Connect to create & sync events</span>
-        <button class="google-btn" onclick="connectGoogle()">
-          <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-          Connect Google
-        </button>
-      </div>
-
-      <div class="connected-account" onclick="showScreen('settings')">
-        <div class="avatar">N</div>
-        <div class="avatar-info">
-          <div class="avatar-name">Neona User</div>
-          <div class="avatar-email">user@gmail.com</div>
-        </div>
-        <span style="color:var(--text3);font-size:14px;">⚙️</span>
-      </div>
-    </div>
-  </aside>
-
-  <!-- Main -->
-  <main id="main">
-    <!-- Header -->
-    <header id="header">
-      <button class="header-btn" onclick="toggleSidebar()" id="menu-btn" title="Menu">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
-        </svg>
-      </button>
-
-      <span class="header-title" id="header-title">Neona.ai</span>
-
-      <button class="header-btn" onclick="cycleTheme()" title="Theme" style="font-size:18px;">🌙</button>
-      <button class="header-btn" onclick="showScreen('settings')" title="Settings" style="font-size:18px;">⚙️</button>
-    </header>
-
-    <!-- Home / Chat Screen -->
-    <div class="screen active" id="home-screen">
-      <div class="chat-area" id="chat-area">
-        <!-- Welcome state -->
-        <div class="welcome-container" id="welcome-state">
-          <div class="logo-orb"></div>
-          <h2 class="welcome-title">How can Neona<br>help you today?</h2>
-          <p class="welcome-sub">Turn natural language into Google Calendar events, tasks & reminders.</p>
-          <div class="suggestion-grid">
-            <button class="suggestion-card" onclick="useSuggestion('Schedule a team meeting tomorrow at 2pm')">
-              <span class="suggestion-icon">📅</span>
-              <span class="suggestion-label">Create an event</span>
-              <span class="suggestion-desc">Add to Google Calendar instantly</span>
-            </button>
-            <button class="suggestion-card" onclick="useSuggestion('Create a task to review project proposal by Friday')">
-              <span class="suggestion-icon">✅</span>
-              <span class="suggestion-label">Create a task</span>
-              <span class="suggestion-desc">Add to Google Tasks</span>
-            </button>
-            <button class="suggestion-card" onclick="useSuggestion('Remind me to call mom every Sunday at 5pm')">
-              <span class="suggestion-icon">⏰</span>
-              <span class="suggestion-label">Set a reminder</span>
-              <span class="suggestion-desc">Never miss what matters</span>
-            </button>
-            <button class="suggestion-card" onclick="useSuggestion('Plan my day tomorrow with meetings, gym, and lunch')">
-              <span class="suggestion-icon">🗓</span>
-              <span class="suggestion-label">Plan my day</span>
-              <span class="suggestion-desc">Organize your schedule</span>
-            </button>
-          </div>
-        </div>
-        <!-- Messages -->
-        <div class="messages-list" id="messages-list" style="display:none;"></div>
-      </div>
-
-      <!-- Input -->
-      <div class="input-area">
-        <div class="input-bar">
-          <textarea id="chat-input" rows="1" placeholder="Ask Neona.ai…"
-            onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
-          <button class="input-btn" onclick="showToast('🎙️ Voice input coming soon!')" title="Voice">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
+    <div class="modal-overlay" id="authModal">
+        <div class="auth-card">
+            <svg class="google-icon" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
             </svg>
-          </button>
-          <button class="send-btn" id="send-btn" onclick="sendMessage()" title="Send">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>
-            </svg>
-          </button>
+            <h2 class="auth-title">Connect Google</h2>
+            <p class="auth-desc">Neona.ai needs access to your Google Tasks & Calendar to magically organize your life.</p>
+            <button class="btn-full btn-google" onclick="closeAuthModal()">
+                Sign in with Google
+            </button>
+            <button class="btn-full btn-later" onclick="closeAuthModal()">
+                Maybe Later
+            </button>
         </div>
-        <p style="text-align:center;font-size:11px;color:var(--text3);margin-top:6px;">Neona may make mistakes. Always verify events before saving.</p>
-      </div>
     </div>
 
-    <!-- Settings Screen -->
-    <div class="screen" id="settings-screen">
-      <div class="settings-content">
-        <div class="settings-header">
-          <h2>Settings</h2>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">Neona</div>
+        <div class="sidebar-content">
+            <div class="menu-item active">
+                <span class="material-symbols-outlined">edit_square</span> New task chat
+            </div>
+            <div class="menu-item">
+                <span class="material-symbols-outlined">search</span> Search plans
+            </div>
+            <div class="menu-item" onclick="openSettings()">
+                <span class="material-symbols-outlined">settings</span> Settings
+            </div>
+            
+            <div style="margin-top: 24px; padding-left: 16px; font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">
+                Legal
+            </div>
+            <div class="menu-item">
+                <span class="material-symbols-outlined">gavel</span> Terms & Conditions
+            </div>
         </div>
-
-        <!-- Profile Card -->
-        <div class="settings-group">
-          <div class="settings-card">
-            <div class="settings-item" style="gap:14px;">
-              <div class="avatar" style="width:48px;height:48px;font-size:18px;flex-shrink:0;">N</div>
-              <div class="avatar-info">
-                <div class="avatar-name" style="font-size:16px;font-weight:600;">Neona User</div>
-                <div class="avatar-email">user@gmail.com</div>
-              </div>
-              <span class="settings-arrow">›</span>
+        <div class="sidebar-footer">
+            <div class="profile-pic"></div>
+            <div class="profile-info">
+                <span class="profile-name">Gowtham Gowda C B</span>
+                <span class="profile-tier">PRO Extended</span>
             </div>
-          </div>
+            <span class="material-symbols-outlined" style="margin-left: auto; color: var(--text-secondary);">settings</span>
         </div>
+    </aside>
 
-        <!-- Google Integration -->
-        <div class="settings-group">
-          <div class="settings-group-label">Integrations</div>
-          <div class="settings-card">
-            <div class="settings-item" onclick="connectGoogle()">
-              <div class="settings-item-icon" style="background:rgba(66,133,244,0.1);">🗓</div>
-              <div class="settings-item-info">
-                <div class="settings-item-label">Google Calendar</div>
-                <div class="settings-item-value">Not connected</div>
-              </div>
-              <div class="settings-item-right">
-                <span class="status-dot gray"></span>
-                <span class="settings-arrow">›</span>
-              </div>
-            </div>
-            <div class="settings-item" onclick="connectGoogle()">
-              <div class="settings-item-icon" style="background:rgba(52,211,153,0.1);">✅</div>
-              <div class="settings-item-info">
-                <div class="settings-item-label">Google Tasks</div>
-                <div class="settings-item-value">Not connected</div>
-              </div>
-              <div class="settings-item-right">
-                <span class="status-dot gray"></span>
-                <span class="settings-arrow">›</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Appearance -->
-        <div class="settings-group">
-          <div class="settings-group-label">Appearance</div>
-          <div class="settings-card">
-            <div class="settings-item" onclick="cycleTheme()">
-              <div class="settings-item-icon" style="background:rgba(167,139,250,0.1);">🎨</div>
-              <div class="settings-item-info">
-                <div class="settings-item-label">Theme</div>
-                <div class="settings-item-value" id="theme-label">Dark</div>
-              </div>
-              <span class="settings-arrow">›</span>
-            </div>
-            <div class="settings-item">
-              <div class="settings-item-icon" style="background:rgba(96,165,250,0.1);">🔵</div>
-              <div class="settings-item-info">
-                <div class="settings-item-label">Accent Color</div>
-                <div class="accent-colors">
-                  <div class="accent-swatch active" style="background:linear-gradient(135deg,#a78bfa,#60a5fa);" title="Purple Blue" onclick="setAccent('--accent','#a78bfa')"></div>
-                  <div class="accent-swatch" style="background:linear-gradient(135deg,#f472b6,#fb7185);" title="Pink" onclick="setAccent('--accent','#f472b6')"></div>
-                  <div class="accent-swatch" style="background:linear-gradient(135deg,#34d399,#06b6d4);" title="Green" onclick="setAccent('--accent','#34d399')"></div>
-                  <div class="accent-swatch" style="background:linear-gradient(135deg,#fb923c,#fbbf24);" title="Orange" onclick="setAccent('--accent','#fb923c')"></div>
-                  <div class="accent-swatch" style="background:linear-gradient(135deg,#f87171,#a78bfa);" title="Red Purple" onclick="setAccent('--accent','#f87171')"></div>
+    <div class="bottom-sheet-overlay" id="settingsOverlay" onclick="closeSettings()"></div>
+    <div class="bottom-sheet" id="settingsSheet">
+        <div class="sheet-handle"></div>
+        <h3 style="margin-bottom: 16px; font-weight: 500;">Settings</h3>
+        <div class="settings-list">
+            <div class="setting-item">
+                <div class="setting-info">
+                    <h4>Sync to Google Calendar</h4>
+                    <p>Automatically add extracted dates</p>
                 </div>
-              </div>
+                <div class="toggle active" onclick="this.classList.toggle('active')"></div>
             </div>
-          </div>
+            <div class="setting-item">
+                <div class="setting-info">
+                    <h4>Sync to Google Tasks</h4>
+                    <p>Create actionable to-do items</p>
+                </div>
+                <div class="toggle active" onclick="this.classList.toggle('active')"></div>
+            </div>
+            <div class="setting-item">
+                <div class="setting-info">
+                    <h4>Advanced Parsing</h4>
+                    <p>Use Pro model for context understanding</p>
+                </div>
+                <div class="toggle active" onclick="this.classList.toggle('active')"></div>
+            </div>
         </div>
-
-        <!-- General -->
-        <div class="settings-group">
-          <div class="settings-group-label">General</div>
-          <div class="settings-card">
-            <div class="settings-item">
-              <div class="settings-item-icon" style="background:rgba(251,191,36,0.1);">🔔</div>
-              <div class="settings-item-info">
-                <div class="settings-item-label">Notifications</div>
-              </div>
-              <div class="toggle on" onclick="this.classList.toggle('on')"></div>
-            </div>
-            <div class="settings-item">
-              <div class="settings-item-icon" style="background:rgba(52,211,153,0.1);">📳</div>
-              <div class="settings-item-info">
-                <div class="settings-item-label">Haptic Feedback</div>
-              </div>
-              <div class="toggle on" onclick="this.classList.toggle('on')"></div>
-            </div>
-            <div class="settings-item">
-              <div class="settings-item-icon" style="background:rgba(96,165,250,0.1);">🌐</div>
-              <div class="settings-item-info">
-                <div class="settings-item-label">Language</div>
-                <div class="settings-item-value">English</div>
-              </div>
-              <span class="settings-arrow">›</span>
-            </div>
-            <div class="settings-item">
-              <div class="settings-item-icon" style="background:rgba(167,139,250,0.1);">🤖</div>
-              <div class="settings-item-info">
-                <div class="settings-item-label">Default AI Model</div>
-                <div class="settings-item-value">Neona Pro</div>
-              </div>
-              <div class="settings-item-right">
-                <span class="settings-badge">PRO</span>
-                <span class="settings-arrow">›</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Security -->
-        <div class="settings-group">
-          <div class="settings-group-label">Security & Privacy</div>
-          <div class="settings-card">
-            <div class="settings-item">
-              <div class="settings-item-icon" style="background:rgba(251,191,36,0.1);">🔒</div>
-              <div class="settings-item-info">
-                <div class="settings-item-label">App Lock</div>
-              </div>
-              <div class="toggle" onclick="this.classList.toggle('on')"></div>
-            </div>
-            <div class="settings-item" onclick="showToast('Privacy policy opened')">
-              <div class="settings-item-icon" style="background:rgba(96,165,250,0.1);">🛡️</div>
-              <div class="settings-item-info">
-                <div class="settings-item-label">Privacy Policy</div>
-              </div>
-              <span class="settings-arrow">›</span>
-            </div>
-            <div class="settings-item" onclick="showToast('Data management')">
-              <div class="settings-item-icon" style="background:rgba(52,211,153,0.1);">📦</div>
-              <div class="settings-item-info">
-                <div class="settings-item-label">Data & Storage</div>
-                <div class="settings-item-value">Manage your data</div>
-              </div>
-              <span class="settings-arrow">›</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Support -->
-        <div class="settings-group">
-          <div class="settings-group-label">Support</div>
-          <div class="settings-card">
-            <div class="settings-item" onclick="showToast('📝 Bug report sent. Thank you!')">
-              <div class="settings-item-icon" style="background:rgba(251,191,36,0.1);">🐛</div>
-              <div class="settings-item-info">
-                <div class="settings-item-label">Report a Bug</div>
-              </div>
-              <span class="settings-arrow">›</span>
-            </div>
-            <div class="settings-item" onclick="showToast('ℹ️ Neona.ai v1.0.0')">
-              <div class="settings-item-icon" style="background:rgba(167,139,250,0.1);">ℹ️</div>
-              <div class="settings-item-info">
-                <div class="settings-item-label">About Neona.ai</div>
-                <div class="settings-item-value">Version 1.0.0</div>
-              </div>
-              <span class="settings-arrow">›</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Danger Zone -->
-        <div class="settings-group">
-          <div class="settings-card">
-            <div class="settings-item danger-item" onclick="showToast('👋 Signed out successfully')">
-              <div class="settings-item-icon" style="background:rgba(255,69,58,0.1);">🚪</div>
-              <div class="settings-item-info">
-                <div class="settings-item-label">Log Out</div>
-              </div>
-              <span class="settings-arrow">›</span>
-            </div>
-          </div>
-        </div>
-
-        <p class="settings-version">Neona.ai · v1.0.0 · Made with ✨</p>
-      </div>
     </div>
-  </main>
-</div>
 
-<!-- Toast -->
-<div class="toast" id="toast"></div>
+    <div class="app-container">
+        <header>
+            <div class="header-left">
+                <button class="icon-btn" onclick="toggleSidebar()">
+                    <span class="material-symbols-outlined">menu</span>
+                </button>
+                <div class="model-selector">
+                    Pro Extended <span class="material-symbols-outlined" style="font-size: 18px;">expand_more</span>
+                </div>
+            </div>
+            <button class="icon-btn">
+                <span class="material-symbols-outlined">history</span>
+            </button>
+        </header>
 
-<script>
-/* ========================
-   STATE
-======================== */
-let sidebarOpen = false;
-let currentTheme = 'dark';
-let themeIndex = 0;
-const themes = ['dark', 'light'];
-let messages = [];
-let isTyping = false;
-let googleConnected = false;
+        <main id="mainArea">
+            <div class="greeting-container" id="greetingArea">
+                <div class="magic-star"></div>
+                <h1 class="greeting-text">Hi Gowtham, let's get<br>into it</h1>
+            </div>
+            
+            <div class="chat-history" id="chatHistory">
+                </div>
+        </main>
 
-/* ========================
-   SIDEBAR
-======================== */
-function toggleSidebar() {
-  sidebarOpen ? closeSidebar() : openSidebar();
-}
-function openSidebar() {
-  sidebarOpen = true;
-  document.getElementById('sidebar').classList.add('open');
-  document.getElementById('sidebar-overlay').classList.add('active');
-}
-function closeSidebar() {
-  sidebarOpen = false;
-  document.getElementById('sidebar').classList.remove('open');
-  document.getElementById('sidebar-overlay').classList.remove('active');
-}
-
-/* ========================
-   SCREENS
-======================== */
-function showScreen(name) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(name + '-screen').classList.add('active');
-  const titles = { home: 'Neona.ai', settings: 'Settings' };
-  document.getElementById('header-title').textContent = titles[name] || 'Neona.ai';
-  closeSidebar();
-}
-
-/* ========================
-   THEME
-======================== */
-function cycleTheme() {
-  themeIndex = (themeIndex + 1) % themes.length;
-  currentTheme = themes[themeIndex];
-  document.documentElement.setAttribute('data-theme', currentTheme);
-  document.querySelectorAll('[title="Theme"]').forEach(b => {
-    b.textContent = currentTheme === 'dark' ? '🌙' : '☀️';
-  });
-  document.querySelector('#header [onclick="cycleTheme()"]').textContent = currentTheme === 'dark' ? '🌙' : '☀️';
-  const lbl = document.getElementById('theme-label');
-  if (lbl) lbl.textContent = currentTheme === 'dark' ? 'Dark' : 'Light';
-  showToast(currentTheme === 'dark' ? '🌙 Dark mode' : '☀️ Light mode');
-}
-
-/* ========================
-   ACCENT COLOR
-======================== */
-function setAccent(prop, val) {
-  document.documentElement.style.setProperty(prop, val);
-  document.querySelectorAll('.accent-swatch').forEach(s => s.classList.remove('active'));
-  event.currentTarget.classList.add('active');
-  showToast('🎨 Accent updated');
-}
-
-/* ========================
-   GOOGLE CONNECT
-======================== */
-function connectGoogle() {
-  if (googleConnected) {
-    showToast('✅ Google Calendar already connected');
-    return;
-  }
-  showToast('⏳ Connecting to Google…');
-  setTimeout(() => {
-    googleConnected = true;
-    // Update sidebar card
-    const card = document.getElementById('google-card');
-    card.style.background = 'linear-gradient(135deg, rgba(52,211,153,0.12), rgba(96,165,250,0.08))';
-    card.style.borderColor = 'rgba(52,211,153,0.2)';
-    card.innerHTML = `
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-        <span class="status-dot green"></span>
-        <p style="font-size:13px;font-weight:600;margin:0;">Google Connected</p>
-      </div>
-      <span style="font-size:11px;color:var(--text3);display:block;">user@gmail.com · Syncing</span>
-    `;
-    // Update settings items
-    document.querySelectorAll('.status-dot.gray').forEach(d => {
-      d.classList.remove('gray');
-      d.classList.add('green');
-    });
-    document.querySelectorAll('.settings-item-value').forEach(v => {
-      if (v.textContent === 'Not connected') v.textContent = 'Connected · user@gmail.com';
-    });
-    showToast('✅ Google Calendar connected!');
-  }, 1500);
-}
-
-/* ========================
-   CHAT
-======================== */
-function newChat() {
-  messages = [];
-  const ml = document.getElementById('messages-list');
-  const ws = document.getElementById('welcome-state');
-  ml.innerHTML = '';
-  ml.style.display = 'none';
-  ws.style.display = 'flex';
-  showScreen('home');
-  closeSidebar();
-}
-
-function loadChat(idx) {
-  const previews = [
-    [
-      { role: 'user', text: 'Schedule a team sync tomorrow at 2pm for 1 hour' },
-      { role: 'assistant', text: "I'll create that for you! Here's the event preview:", event: true }
-    ],
-    [
-      { role: 'user', text: 'Remind me about my birthday dinner next Saturday' },
-      { role: 'assistant', text: "Sure! I'll set a reminder for your birthday dinner 🎂", event: false }
-    ]
-  ];
-  const chat = previews[idx] || previews[0];
-  document.getElementById('welcome-state').style.display = 'none';
-  const ml = document.getElementById('messages-list');
-  ml.style.display = 'flex';
-  ml.innerHTML = '';
-  messages = [];
-  chat.forEach(m => {
-    addMessageToDOM(m.role, m.text, m.event || false);
-  });
-  closeSidebar();
-  showScreen('home');
-  document.querySelectorAll('.chat-item').forEach((c, i) => {
-    c.classList.toggle('active', i === idx);
-  });
-}
-
-function useSuggestion(text) {
-  const inp = document.getElementById('chat-input');
-  inp.value = text;
-  autoResize(inp);
-  inp.focus();
-}
-
-function handleKey(e) {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    sendMessage();
-  }
-}
-
-function autoResize(el) {
-  el.style.height = 'auto';
-  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
-}
-
-function sendMessage() {
-  const inp = document.getElementById('chat-input');
-  const text = inp.value.trim();
-  if (!text || isTyping) return;
-  inp.value = '';
-  inp.style.height = 'auto';
-
-  // Hide welcome, show messages
-  document.getElementById('welcome-state').style.display = 'none';
-  const ml = document.getElementById('messages-list');
-  ml.style.display = 'flex';
-
-  // Add user message
-  addMessageToDOM('user', text, false);
-  messages.push({ role: 'user', text });
-
-  // Typing indicator
-  isTyping = true;
-  const typingRow = document.createElement('div');
-  typingRow.className = 'message-row';
-  typingRow.id = 'typing-row';
-  typingRow.innerHTML = `
-    <div class="message-avatar">🤖</div>
-    <div class="typing-indicator">
-      <div class="typing-dot"></div>
-      <div class="typing-dot"></div>
-      <div class="typing-dot"></div>
-    </div>`;
-  ml.appendChild(typingRow);
-  scrollToBottom();
-
-  // Simulate response
-  setTimeout(() => {
-    const tr = document.getElementById('typing-row');
-    if (tr) tr.remove();
-    const isEvent = /meet|schedul|event|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday|\d+[ap]m|\d+ (am|pm)/i.test(text);
-    const isRemind = /remind|reminder/i.test(text);
-    const isTask = /task|todo|to-do|to do/i.test(text);
-    let response = "I've created that for you! ";
-    if (isEvent) response = "I'll add that to your Google Calendar! Here's a preview:";
-    else if (isRemind) response = "Reminder set! I'll make sure you don't forget.";
-    else if (isTask) response = "Task created in Google Tasks! You can view it in your task list.";
-    else response = "Got it! I've processed your request. Would you like me to add anything else to your calendar?";
-    addMessageToDOM('assistant', response, isEvent);
-    isTyping = false;
-    scrollToBottom();
-  }, 1200 + Math.random() * 600);
-}
-
-function addMessageToDOM(role, text, showEvent) {
-  const ml = document.getElementById('messages-list');
-  const row = document.createElement('div');
-  row.className = `message-row ${role === 'user' ? 'user' : ''}`;
-
-  const avatarHTML = role === 'user'
-    ? `<div class="message-avatar user-av">You</div>`
-    : `<div class="message-avatar">🤖</div>`;
-
-  let eventHTML = '';
-  if (showEvent) {
-    eventHTML = `
-    <div class="event-preview-card">
-      <div class="ev-title">📅 Team Sync</div>
-      <div class="ev-row"><span>🕑</span><span>Tomorrow · 2:00 PM – 3:00 PM</span></div>
-      <div class="ev-row"><span>📍</span><span>Google Meet (link generated)</span></div>
-      <div class="ev-row"><span>👥</span><span>You + 3 guests</span></div>
-      <div class="ev-actions">
-        <button class="ev-btn primary" onclick="saveEvent(this)">💾 Save Event</button>
-        <button class="ev-btn secondary" onclick="editEvent(this)">✏️ Edit</button>
-      </div>
-    </div>`;
-  }
-
-  row.innerHTML = `
-    ${role !== 'user' ? avatarHTML : ''}
-    <div>
-      <div class="message-bubble ${role === 'user' ? 'user' : 'assistant'}">${text}</div>
-      ${showEvent ? eventHTML : ''}
+        <div class="input-container">
+            <div class="input-pill">
+                <input type="text" id="chatInput" placeholder="Ask Neona" autocomplete="off" onkeypress="handleEnter(event)">
+                <div class="action-cluster">
+                    <button class="icon-btn" onclick="handleSend()" id="sendBtn" style="display: none;">
+                        <span class="material-symbols-outlined">send</span>
+                    </button>
+                    <button class="icon-btn mic-btn" id="micBtn">
+                        <span class="material-symbols-outlined">mic</span>
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
-    ${role === 'user' ? avatarHTML : ''}
-  `;
-  ml.appendChild(row);
-  scrollToBottom();
-}
 
-function saveEvent(btn) {
-  btn.textContent = '✅ Saved!';
-  btn.style.opacity = '0.7';
-  btn.disabled = true;
-  showToast(googleConnected ? '✅ Event saved to Google Calendar!' : '⚠️ Connect Google to save events');
-}
-function editEvent(btn) {
-  showToast('✏️ Edit mode coming soon!');
-}
+    <script>
+        // DOM Elements
+        const authModal = document.getElementById('authModal');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const settingsSheet = document.getElementById('settingsSheet');
+        const settingsOverlay = document.getElementById('settingsOverlay');
+        const greetingArea = document.getElementById('greetingArea');
+        const chatHistory = document.getElementById('chatHistory');
+        const chatInput = document.getElementById('chatInput');
+        const micBtn = document.getElementById('micBtn');
+        const sendBtn = document.getElementById('sendBtn');
+        const mainArea = document.getElementById('mainArea');
 
-function scrollToBottom() {
-  const ca = document.getElementById('chat-area');
-  setTimeout(() => { ca.scrollTop = ca.scrollHeight; }, 50);
-}
+        // Show Auth Modal on load
+        window.onload = () => {
+            setTimeout(() => {
+                authModal.classList.add('show');
+            }, 500);
+        };
 
-/* ========================
-   TOAST
-======================== */
-let toastTimer;
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
-}
+        function closeAuthModal() {
+            authModal.classList.remove('show');
+        }
 
-/* ========================
-   SWIPE GESTURE (MOBILE)
-======================== */
-let touchStartX = 0;
-document.addEventListener('touchstart', e => {
-  touchStartX = e.touches[0].clientX;
-}, { passive: true });
-document.addEventListener('touchend', e => {
-  const dx = e.changedTouches[0].clientX - touchStartX;
-  if (touchStartX < 40 && dx > 60) openSidebar();
-  if (sidebarOpen && dx < -60) closeSidebar();
-}, { passive: true });
+        // Sidebar logic
+        function toggleSidebar() {
+            sidebar.classList.toggle('open');
+            sidebarOverlay.classList.toggle('show');
+        }
 
-/* ========================
-   INIT
-======================== */
-window.addEventListener('load', () => {
-  // Auto-resize textarea
-  const inp = document.getElementById('chat-input');
-  inp.addEventListener('input', () => autoResize(inp));
+        // Settings Sheet logic
+        function openSettings() {
+            toggleSidebar(); // Close sidebar first
+            setTimeout(() => {
+                settingsOverlay.classList.add('show');
+            }, 300);
+        }
+        function closeSettings() {
+            settingsOverlay.classList.remove('show');
+        }
 
-  // Keyboard shows on mobile
-  inp.addEventListener('focus', () => {
-    setTimeout(scrollToBottom, 300);
-  });
-});
-</script>
+        // Input Field Logic (Toggle Mic and Send icon)
+        chatInput.addEventListener('input', () => {
+            if (chatInput.value.trim().length > 0) {
+                micBtn.style.display = 'none';
+                sendBtn.style.display = 'flex';
+            } else {
+                micBtn.style.display = 'flex';
+                sendBtn.style.display = 'none';
+            }
+        });
+
+        function handleEnter(e) {
+            if (e.key === 'Enter') handleSend();
+        }
+
+        // Chat Logic
+        function handleSend() {
+            const text = chatInput.value.trim();
+            if (!text) return;
+
+            // Hide Greeting & Show Chat
+            if (greetingArea.style.display !== 'none') {
+                greetingArea.style.display = 'none';
+                chatHistory.style.display = 'flex';
+            }
+
+            // Append User Message
+            const userHtml = `
+                <div class="message user">
+                    <div class="msg-bubble">${text}</div>
+                </div>
+            `;
+            chatHistory.insertAdjacentHTML('beforeend', userHtml);
+            
+            chatInput.value = '';
+            chatInput.dispatchEvent(new Event('input')); // Reset icons
+            scrollToBottom();
+
+            // AI Typing Indicator
+            const typingId = 'typing-' + Date.now();
+            const typingHtml = `
+                <div class="message ai" id="${typingId}">
+                    <div class="msg-bubble">
+                        <div class="typing-dots">
+                            <div></div><div></div><div></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            chatHistory.insertAdjacentHTML('beforeend', typingHtml);
+            scrollToBottom();
+
+            // Simulate AI Processing & Task Generation
+            setTimeout(() => {
+                document.getElementById(typingId).remove();
+                
+                const responseHtml = `
+                    <div class="message ai">
+                        <div class="msg-bubble" style="width: 100%;">
+                            <div class="task-card">
+                                <div class="task-header">
+                                    <span class="material-symbols-outlined" style="font-size: 18px;">auto_awesome</span>
+                                    Google Task Parsed
+                                </div>
+                                <div class="task-title">${text}</div>
+                                <div class="task-time">
+                                    <span class="material-symbols-outlined" style="font-size: 16px;">event</span>
+                                    Pending Sync
+                                </div>
+                                <div class="task-actions">
+                                    <button class="primary">Add to Tasks</button>
+                                    <button>Edit</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                chatHistory.insertAdjacentHTML('beforeend', responseHtml);
+                scrollToBottom();
+            }, 1800);
+        }
+
+        function scrollToBottom() {
+            mainArea.scrollTop = mainArea.scrollHeight;
+        }
+    </script>
 </body>
 </html>
