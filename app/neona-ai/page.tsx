@@ -1,5 +1,5 @@
-import NeonaAI from "../../components/NeonaAI";
+import SchedulerChat from "@/components/scheduler-chat";
 
 export default function Page() {
-  return <NeonaAI />;
+  return <SchedulerChat />;
 }

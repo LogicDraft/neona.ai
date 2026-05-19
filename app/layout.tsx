@@ -1,12 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import "../minimal.css";
 import Providers from "@/app/providers";
-import BottomNav from "@/components/bottom-nav";
 
 export const metadata: Metadata = {
-  title: "Neona AI — Smart Scheduling Assistant",
-  description: "Schedule events, tasks, and reminders using natural language with Neona AI.",
+  title: "Neona.ai",
+  description: "Schedule events, tasks, and reminders using natural language with Neona.ai.",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: "/icon.svg",
@@ -18,22 +16,22 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f5f5f7" },
-    { media: "(prefers-color-scheme: dark)",  color: "#000000" },
-  ],
+  themeColor: "#000000",
 };
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" data-theme="light" data-ui="minimal" suppressHydrationWarning className="h-full">
-      <body className="h-full antialiased">
-        <Providers>
-          {children}
-          <BottomNav />
-        </Providers>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"
+        />
+      </head>
+      <body>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
