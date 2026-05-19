@@ -111,6 +111,16 @@ export async function parseScheduleText(options: {
       console.error(`Model ${modelName} failed with API error:`, err);
       lastError = err;
 
+      // Only fall back to other models if the current model was simply not found (404)
+      // or if it was a 503 service unavailable.
+      // Do NOT fall back on 400 (API key invalid), 403 (permissions), or 429 (rate limits).
+      const isNotFound = err?.status === 404 || (err?.message && err.message.includes("404"));
+      const isUnavailable = err?.status === 503 || (err?.message && err.message.includes("503"));
+      
+      if (!isNotFound && !isUnavailable) {
+        throw err;
+      }
+
       // If it's the last model, try listing models to provide a helpful error message
       if (modelName === modelCandidates[modelCandidates.length - 1]) {
         const listFn = (client as any).listModels ?? (client as any).list_available_models ?? null;
