@@ -98,6 +98,7 @@ function SidebarDrawer({
   userEmail,
   onSignOut,
   onInstall,
+  onOpenTerms,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -108,6 +109,7 @@ function SidebarDrawer({
   userEmail?: string | null;
   onSignOut: () => void;
   onInstall?: () => void;
+  onOpenTerms: () => void;
 }) {
   return (
     <>
@@ -119,9 +121,10 @@ function SidebarDrawer({
             <button
               key={item.label}
               className={`menu-item ${item.active ? "active" : ""}`}
-              onClick={() => {
-                if (item.active) onNewChat();
-              }}
+              onClick={
+                item.label === "Terms & Conditions" ? onOpenTerms :
+                item.label === "New task chat" ? onNewChat : undefined
+              }
             >
               <MaterialIcon>{item.icon}</MaterialIcon>
               <span>{item.label}</span>
@@ -240,6 +243,65 @@ function SettingsSheet({
   );
 }
 
+function TermsSheet({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  return (
+    <>
+      <button className={`bottom-sheet-overlay ${isOpen ? "show" : ""}`} aria-label="Close terms" onClick={onClose} />
+      <section className={`bottom-sheet ${isOpen ? "open" : ""}`} aria-label="Terms and Conditions">
+        <div className="sheet-handle" />
+        <h2>Terms & Conditions</h2>
+        <div style={{ marginTop: "16px", color: "var(--text-secondary)", fontSize: "14px", lineHeight: "1.6", maxHeight: "60vh", overflowY: "auto", paddingBottom: "24px", display: "flex", flexDirection: "column", gap: "12px" }}>
+          <p><strong>Last Updated: May 20, 2026</strong></p>
+          <p>Welcome to Neona.ai. These Terms and Conditions outline the rules and regulations for the use of the Neona.ai application, operated by LogicDraft Labs.</p>
+          <p>By accessing and using this application, we assume you accept these terms and conditions in full. Do not continue to use Neona.ai if you do not agree to all of the terms and conditions stated on this page.</p>
+
+          <p><strong>1. Description of Service</strong></p>
+          <p>Neona.ai is an intelligent productivity tool that utilizes artificial intelligence to parse natural language inputs and automatically schedule events, reminders, and tasks. To function, the application requires integration with your personal Google account (specifically Google Calendar and Google Tasks).</p>
+
+          <p><strong>2. Third-Party Integrations and Account Access</strong></p>
+          <p>To provide its core functionality, Neona.ai requires authenticated access to your Google account via OAuth.</p>
+          <p><strong>Consent:</strong> By connecting your Google account, you grant Neona.ai permission to read, write, and modify your Calendar and Tasks data strictly based on your chat inputs.</p>
+          <p><strong>Third-Party Terms:</strong> Your use of Google services through Neona.ai is also governed by Google’s Terms of Service and Privacy Policy. LogicDraft Labs is not responsible for any changes, outages, or data loss originating from Google's platforms.</p>
+          <p><strong>Revocation:</strong> You may revoke Neona.ai’s access to your Google account at any time through your Google Account Security settings.</p>
+
+          <p><strong>3. Artificial Intelligence Processing</strong></p>
+          <p>Neona.ai utilizes advanced AI models to interpret your inputs.</p>
+          <p>You acknowledge that the text you enter into the chat interface will be processed by AI algorithms to extract task and scheduling data.</p>
+          <p>While we strive for high accuracy, AI interpretations may occasionally be incorrect. You are responsible for reviewing the generated "Event Cards" or "Task Cards" before confirming their addition to your Google account.</p>
+
+          <p><strong>4. User Responsibilities</strong></p>
+          <p>When using Neona.ai, you agree to the following:</p>
+          <ul>
+            <li>You will not use the service for any illegal or unauthorized purpose.</li>
+            <li>You will not attempt to hack, destabilize, or reverse-engineer the application.</li>
+            <li>You are responsible for maintaining the security of the account used to access the app.</li>
+          </ul>
+
+          <p><strong>5. Intellectual Property Rights</strong></p>
+          <p>Unless otherwise stated, LogicDraft Labs owns the intellectual property rights for all material, code, UI/UX designs, and branding associated with Neona.ai. All intellectual property rights are reserved. You may access this from Neona.ai for your own personal use subjected to restrictions set in these terms and conditions.</p>
+
+          <p><strong>6. Disclaimer of Warranties</strong></p>
+          <p>Neona.ai is provided on an "as is" and "as available" basis. LogicDraft Labs makes no representations or warranties of any kind, express or implied, regarding the operation of the application or the information, content, or materials included. We do not warrant that the application will be uninterrupted, error-free, or entirely secure.</p>
+
+          <p><strong>7. Limitation of Liability</strong></p>
+          <p>In no event shall LogicDraft Labs, nor its developers or affiliates, be liable for any indirect, consequential, or incidental damages arising out of or in connection with your use of the application, including but not limited to missed appointments, unsaved tasks, or data syncing errors.</p>
+
+          <p><strong>8. Modifications to the Service and Terms</strong></p>
+          <p>We reserve the right to modify or discontinue, temporarily or permanently, the service (or any part thereof) with or without notice. We may also revise these Terms and Conditions at any time. By using this application, you are expected to review these Terms on a regular basis.</p>
+
+          <p><strong>9. Contact Information</strong></p>
+          <p>For any official inquiries, support requests, or questions regarding these Terms and Conditions, please contact us:</p>
+          <ul>
+            <li><strong>Organization:</strong> LogicDraft Labs</li>
+            <li><strong>Official Contact:</strong> Gowtham Gowda C B</li>
+            <li><strong>Email:</strong> gowdagowtham1025@gmail.com</li>
+          </ul>
+        </div>
+      </section>
+    </>
+  );
+}
+
 function AuthModal({
   status,
   onLater,
@@ -284,7 +346,7 @@ function AuthModal({
 function GreetingArea({ name, justLoggedIn }: { name: string; justLoggedIn?: boolean }) {
   return (
     <section className="greeting-container" aria-label="Greeting">
-      <img src="/app_icon.png" alt="Neona App Icon" className={`app-icon-greeting ${justLoggedIn ? "login-bounce" : "real-icon"}`} />
+      <div className={`app-icon-greeting ${justLoggedIn ? "login-bounce" : ""}`} />
       <h1 className="greeting-text">
         Hi {name}, let&apos;s get
         <br />
@@ -546,6 +608,7 @@ export default function SchedulerChat() {
   const { data: session, status } = useSession();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isTermsOpen, setIsTermsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [inputValue, setInputValue] = useState("");
@@ -559,6 +622,8 @@ export default function SchedulerChat() {
   });
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isListening, setIsListening] = useState(false);
+  const [justLoggedIn, setJustLoggedIn] = useState(false);
+  const prevStatus = useRef(status);
   const recognitionRef = useRef<any>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const mainRef = useRef<HTMLElement | null>(null);
@@ -581,6 +646,7 @@ export default function SchedulerChat() {
       if (e.key === "Escape") {
         setIsSidebarOpen(false);
         setIsSettingsOpen(false);
+        setIsTermsOpen(false);
       } else if (e.key === "/" && document.activeElement?.tagName !== "INPUT") {
         e.preventDefault();
         inputRef.current?.focus();
@@ -600,7 +666,12 @@ export default function SchedulerChat() {
   }, []);
 
   useEffect(() => {
+    if (status === "authenticated" && prevStatus.current === "unauthenticated") {
+      setJustLoggedIn(true);
+      setTimeout(() => setJustLoggedIn(false), 2000); // clear after animation
+    }
     if (status === "authenticated") setIsAuthModalDismissed(false);
+    prevStatus.current = status;
   }, [status]);
 
   useEffect(() => {
@@ -697,7 +768,7 @@ export default function SchedulerChat() {
   async function handleLogout() {
     setIsSidebarOpen(false);
     setIsSettingsOpen(false);
-    clearChat();
+    setIsTermsOpen(false);
     await clearLocalCache();
     await signOut({ callbackUrl: "/" });
   }
@@ -804,6 +875,10 @@ export default function SchedulerChat() {
               }
             : undefined
         }
+        onOpenTerms={() => {
+          setIsSidebarOpen(false);
+          setIsTermsOpen(true);
+        }}
       />
       <SettingsSheet
         isOpen={isSettingsOpen}
@@ -816,11 +891,12 @@ export default function SchedulerChat() {
         onClearCache={clearLocalCache}
         onDisconnect={handleLogout}
       />
+      <TermsSheet isOpen={isTermsOpen} onClose={() => setIsTermsOpen(false)} />
 
       <Header onOpenSidebar={() => setIsSidebarOpen(true)} onNewChat={resetChat} />
       <main className="main-area" ref={mainRef}>
         {messages.length === 0 ? (
-          <GreetingArea name={userFirstName} justLoggedIn={status === "authenticated" && !isLoaded} />
+          <GreetingArea name={userFirstName} justLoggedIn={justLoggedIn} />
         ) : (
           <ChatHistory
             messages={messages}

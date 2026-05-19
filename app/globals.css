@@ -171,17 +171,18 @@ select:focus-visible {
 .app-icon-greeting {
   width: 56px;
   height: 56px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23a8c7fa'%3E%3Cpath d='M12 2L22 12 12 22 2 12 12 2z'/%3E%3C/svg%3E");
+  background-image: url("/app_icon.png");
   background-size: contain;
+  background-position: center;
   background-repeat: no-repeat;
   margin-bottom: 24px;
   opacity: 0;
   animation: fadeIn 500ms ease-out forwards;
 }
 
-.app-icon-greeting.real-icon {
-  background-image: none;
-  object-fit: contain;
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .login-bounce {
