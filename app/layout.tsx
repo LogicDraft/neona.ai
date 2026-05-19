@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Providers from "@/app/providers";
+import SplashScreen from "@/components/splash-screen";
 
 export const metadata: Metadata = {
   title: "Neona.ai",
@@ -31,6 +32,7 @@ export default function RootLayout({
         />
       </head>
       <body>
+        <SplashScreen />
         <Providers>{children}</Providers>
       </body>
     </html>

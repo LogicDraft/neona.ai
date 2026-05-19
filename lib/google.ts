@@ -136,6 +136,22 @@ function buildTaskSubtitle(task: { due?: string | null; updated?: string | null 
   return "Google Tasks";
 }
 
+export function formatReadableRecurrence(rrule: string): string {
+  if (rrule.includes("FREQ=DAILY")) return "Daily";
+  if (rrule.includes("FREQ=WEEKLY")) {
+    const byday = rrule.match(/BYDAY=([A-Z,]+)/)?.[1];
+    if (byday) {
+      const days: Record<string, string> = { SU: "Sunday", MO: "Monday", TU: "Tuesday", WE: "Wednesday", TH: "Thursday", FR: "Friday", SA: "Saturday" };
+      const dayList = byday.split(",").map(d => days[d] || d).join(", ");
+      return `Weekly on ${dayList}`;
+    }
+    return "Weekly";
+  }
+  if (rrule.includes("FREQ=MONTHLY")) return "Monthly";
+  if (rrule.includes("FREQ=YEARLY")) return "Yearly";
+  return rrule;
+}
+
 export async function createGoogleEvent(tokens: GoogleTokenSet, item: ParsedItem) {
   const accessToken = await ensureAccessToken(tokens);
   const client = getOAuthClient({ ...tokens, accessToken });
@@ -149,15 +165,27 @@ export async function createGoogleEvent(tokens: GoogleTokenSet, item: ParsedItem
     ? { date: nextDate(item.date) }
     : { dateTime: `${item.date}T${item.endTime ?? item.startTime}:00`, timeZone: item.timeZone };
 
-  const response = await calendar.events.insert({
-    calendarId: "primary",
-    requestBody: {
-      summary: item.title,
-      description: item.description,
-      start,
-      end,
-    },
-  });
+  let response;
+  try {
+    response = await calendar.events.insert({
+      calendarId: "primary",
+      requestBody: {
+        summary: item.title,
+        description: item.description,
+        start,
+        end,
+        ...(item.recurrence ? { recurrence: [item.recurrence] } : {}),
+      },
+    });
+  } catch (err: any) {
+    if (err?.code === 429) {
+      throw new Error("Google Calendar API rate limit exceeded. Please try again in a moment.");
+    }
+    if (err?.code === 401 || err?.code === 403) {
+      throw new Error("Google authentication error. Please try reconnecting your account.");
+    }
+    throw new Error(err?.message || "Failed to create Google Event.");
+  }
 
   return {
     provider: "calendar" as const,
@@ -172,15 +200,32 @@ export async function createGoogleTask(tokens: GoogleTokenSet, item: ParsedItem)
   const client = getOAuthClient({ ...tokens, accessToken });
   const tasks = google.tasks({ version: "v1", auth: client });
 
-  const response = await tasks.tasks.insert({
-    tasklist: "@default",
-    requestBody: {
-      title: item.title,
-      notes: item.description,
-      due: `${item.date}T00:00:00.000Z`,
-      status: "needsAction",
-    },
-  });
+  let notes = item.description;
+  if (item.recurrence) {
+    const readableRecurrence = formatReadableRecurrence(item.recurrence);
+    notes = notes ? `${notes}\n\n[Recurrence: ${readableRecurrence}]` : `[Recurrence: ${readableRecurrence}]`;
+  }
+
+  let response;
+  try {
+    response = await tasks.tasks.insert({
+      tasklist: "@default",
+      requestBody: {
+        title: item.title,
+        notes,
+        due: `${item.date}T00:00:00.000Z`,
+        status: "needsAction",
+      },
+    });
+  } catch (err: any) {
+    if (err?.code === 429) {
+      throw new Error("Google Tasks API rate limit exceeded. Please try again in a moment.");
+    }
+    if (err?.code === 401 || err?.code === 403) {
+      throw new Error("Google authentication error. Please try reconnecting your account.");
+    }
+    throw new Error(err?.message || "Failed to create Google Task.");
+  }
 
   return {
     provider: "tasks" as const,

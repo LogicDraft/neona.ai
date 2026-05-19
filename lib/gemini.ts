@@ -9,11 +9,24 @@ function stripCodeFences(value: string) {
   return trimmed;
 }
 
-function buildPrompt(text: string, timezone: string, preferredKind?: "event" | "task") {
+function buildPrompt(
+  text: string,
+  timezone: string,
+  preferredKind?: "event" | "task",
+  history?: Array<{ role: "user" | "ai"; text: string; item?: ParsedItem }>
+) {
   const now = new Date().toISOString();
   const kindHint = preferredKind ? `The user prefers a ${preferredKind}.` : "Choose the best kind based on the request.";
 
-  return `You are a scheduling assistant. Extract a single calendar or task item from the user's message.
+  let historyContext = "";
+  if (history && history.length > 0) {
+    historyContext = "\n\nRecent conversation history for context:\n" + history.map(h => {
+      const parsedPart = h.item ? ` (Parsed Item: ${JSON.stringify(h.item)})` : "";
+      return `[${h.role.toUpperCase()}]: "${h.text}"${parsedPart}`;
+    }).join("\n");
+  }
+
+  return `You are Neona, a scheduling assistant. Extract a single calendar or task item from the user's message.
 Return only JSON that matches this shape:
 {
   "kind": "event" | "task",
@@ -25,26 +38,31 @@ Return only JSON that matches this shape:
   "allDay": boolean,
   "timeZone": string,
   "confidence": number,
-  "clarification": string | null
+  "clarification": string | null,
+  "recurrence": string | null
 }
+
 Rules:
-- Use today's date as ${now}.
+- Today's date (current local time) is ${now}.
 - Use timezone ${timezone}.
 - ${kindHint}
 - If only a date is provided, set allDay to true and leave times null.
-- If the user gives no date, infer the nearest reasonable future date.
-- If the text looks incomplete, set clarification to a short follow-up question.
-- Make confidence a number between 0 and 1.
-- Keep the title concise and actionable.
-- Description should preserve useful detail from the user text.
+- If the user gives no date, infer the nearest reasonable future date based on the context.
+- Support recurring events: If the user says "every Monday", "monthly rent", "daily standup", set recurrence to a standard RFC 5545 iCalendar rule (RRULE), e.g., 'RRULE:FREQ=WEEKLY;BYDAY=MO', 'RRULE:FREQ=MONTHLY', 'RRULE:FREQ=DAILY'. Otherwise, set recurrence to null.
+- Support natural edits/follow-ups: Look at the recent conversation history below (if any). If the user is modifying the previous item (e.g., "move that to Friday", "make it 30 minutes", "cancel it", "change the title to X"), you must merge these updates with the previous parsed item details.
+  - "move that to Friday": Shift the event's date to the upcoming Friday, keeping start/end times and other details.
+  - "make it 30 minutes": Keep the start time, but set the end time so the duration is exactly 30 minutes.
+  - "cancel it": If the user wants to cancel or clear, set confidence to 0 and clarification to "Cancelled! Let me know if you'd like to schedule anything else."
+- If the user's request is unclear, incomplete, or ambiguous (e.g. they just say "remind me" or "meeting" without title or time), set confidence to a low value (below 0.6) and set clarification to a friendly, short follow-up question. Do not generate a half-baked card.
 
-User text: ${text}`;
+User message to parse: "${text}"${historyContext}`;
 }
 
 export async function parseScheduleText(options: {
   text: string;
   timezone: string;
   preferredKind?: "event" | "task";
+  history?: Array<{ role: "user" | "ai"; text: string; item?: ParsedItem }>;
 }): Promise<ParsedItem> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
@@ -77,7 +95,7 @@ export async function parseScheduleText(options: {
     });
 
     try {
-      const result = await model.generateContent(buildPrompt(options.text, options.timezone, options.preferredKind));
+      const result = await model.generateContent(buildPrompt(options.text, options.timezone, options.preferredKind, options.history));
       const response = result.response.text();
       const json = JSON.parse(stripCodeFences(response));
       return parsedItemSchema.parse(json);
@@ -113,5 +131,7 @@ export async function parseScheduleText(options: {
     }
   }
 
-  throw lastError instanceof Error ? lastError : new Error("Unable to parse schedule with Gemini.");
+  const finalError = lastError instanceof Error ? lastError : new Error("Unable to parse schedule with Gemini.");
+  console.error(JSON.stringify({ event: "PARSE_FAILURE", error: finalError.message, input: options.text }));
+  throw finalError;
 }

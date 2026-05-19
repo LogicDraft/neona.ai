@@ -41,7 +41,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -59,7 +60,8 @@ input:disabled {
 }
 
 button:focus-visible,
-input:focus-visible {
+input:focus-visible,
+select:focus-visible {
   outline: 2px solid var(--accent-blue);
   outline-offset: 3px;
 }
@@ -204,7 +206,83 @@ input:focus-visible {
 }
 
 .message.ai {
+  flex-direction: row;
   align-items: flex-start;
+  gap: 12px;
+}
+
+.ai-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-variant);
+}
+
+.ai-avatar.pulse {
+  animation: pulseAvatar 2s infinite ease-in-out;
+}
+
+.ai-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@keyframes pulseAvatar {
+  0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.2); }
+  70% { box-shadow: 0 0 0 6px rgba(255, 255, 255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+}
+
+/* Splash Screen Animation */
+.splash-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  /* Use a soft Material You light background or the app's surface color */
+  background: var(--background);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.splash-logo {
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+  will-change: transform, opacity;
+  animation: splashSequence 1.9s forwards;
+  /* Motion blur during fall */
+  filter: drop-shadow(0px 10px 20px rgba(0, 0, 0, 0.2));
+}
+
+@keyframes splashSequence {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.85) rotate(0deg);
+    animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1); /* easeOutCubic */
+  }
+  21.05% { /* 400ms */
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0deg);
+    animation-timing-function: linear;
+  }
+  52.63% { /* 1000ms (400ms fade/scale + 600ms hold) */
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0deg);
+    animation-timing-function: cubic-bezier(0.55, 0.085, 0.68, 0.53); /* easeInQuad / gravity */
+  }
+  100% { /* 1900ms */
+    opacity: 0;
+    transform: translateY(80vh) scale(0.75) rotate(10deg);
+    /* Simple motion blur approximation via drop shadow stretching */
+    filter: drop-shadow(0px -20px 20px rgba(0, 0, 0, 0.1));
+  }
 }
 
 .msg-bubble {
@@ -251,6 +329,41 @@ input:focus-visible {
   font-weight: 500;
 }
 
+.confidence-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  margin-bottom: 12px;
+  padding: 6px 10px;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.confidence-pill.good {
+  color: #ceead6;
+  background: rgba(52, 168, 83, 0.12);
+}
+
+.confidence-pill.needs {
+  color: #fdd663;
+  background: rgba(251, 188, 4, 0.12);
+}
+
+.confidence-pill.warn {
+  color: #f2b8b5;
+  background: rgba(217, 101, 112, 0.14);
+}
+
+.confidence-pill small {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
 .task-title {
   margin-bottom: 8px;
   color: var(--text-primary);
@@ -264,6 +377,38 @@ input:focus-visible {
   color: var(--text-secondary);
   font-size: 14px;
   line-height: 1.45;
+}
+
+.review-grid {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.review-field {
+  display: grid;
+  gap: 6px;
+}
+
+.review-field span {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.review-field input,
+.review-field select {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+}
+
+.review-field select {
+  color-scheme: dark;
 }
 
 .task-warning {
@@ -340,6 +485,42 @@ input:focus-visible {
   z-index: 20;
   padding: 12px 16px calc(24px + env(safe-area-inset-bottom));
   background: linear-gradient(to top, var(--bg-base) 80%, transparent);
+}
+
+.quick-chips,
+.kind-switch {
+  display: flex;
+  width: min(100%, 900px);
+  margin: 0 auto 8px;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.quick-chips::-webkit-scrollbar,
+.kind-switch::-webkit-scrollbar {
+  display: none;
+}
+
+.quick-chips button,
+.kind-switch button {
+  display: inline-flex;
+  min-height: 36px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.kind-switch button.active {
+  color: #000000;
+  background: var(--accent-blue);
 }
 
 .input-pill {
@@ -619,9 +800,33 @@ input:focus-visible {
 .sheet-handle {
   width: 32px;
   height: 4px;
-  margin: 8px auto 20px;
+  margin: 0 auto 16px;
   background: var(--surface-variant);
   border-radius: 4px;
+}
+
+.setting-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.setting-item span {
+  font-size: 15px;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--surface-variant) 25%, var(--surface-hover) 50%, var(--surface-variant) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+  border-radius: 50%;
 }
 
 .settings-list {
@@ -629,6 +834,35 @@ input:focus-visible {
   flex-direction: column;
   gap: 20px;
   padding: 10px 0;
+}
+
+.connected-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 12px;
+  color: var(--text-secondary);
+  background: var(--surface-variant);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 18px;
+}
+
+.connected-status span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+}
+
+.connected-status strong {
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .setting-item {

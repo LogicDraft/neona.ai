@@ -9,6 +9,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ item });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to parse the request.";
-    return NextResponse.json({ error: message }, { status: 400 });
+    const status = message.toLowerCase().includes("rate limit") || message.includes("429") ? 429 : 400;
+    return NextResponse.json({ error: message }, { status });
   }
 }
